@@ -23,11 +23,11 @@ In this version, the compression algerithm is slightly changed, but the compress
 
 Contact
 ----
-If you have some questions or recommendations for this project, please contact Jianyu Chen at this email address: chenjy0046@gmail.com\
+If you have some questions or recommendations for this project, please contact Jianyu Chen at this email address: chenjy0046@gmail.com
 
 Parameter of implementation on Vivado:
 ----
 The working frequency of this decompressor on KU115 FPGA (core speed -2) can achive 250MHz when connects to IBM CAPI interface with the following place and route strategy:\
 place strategy: Congestion_SpreadLogic_medium\
 route: strategy:  AlternateCLBRouting\
-On default strategy, the timing constrain will fail due to congestion\
+On default strategy, the timing constrain will fail due to congestion
