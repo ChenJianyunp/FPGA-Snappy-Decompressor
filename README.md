@@ -19,7 +19,7 @@ The demo will work based on this platform: fetch data from memory, do decompress
 Recommanded compression software
 ----
 If you use the decompression software from Google, the perfromance of this decompression maybe bad for some special data with extremly high data dependency. In this case, it is recommended to use a modified compression software: https://github.com/ChenJianyunp/snappy-c \
-In this version, the compression algerithm is slightly changed, but the compression result is still standard Snappy. And it will cause almost no change on the compression ratio, while greatly reduce the data dependency and make the parallel decompression more efficient.
+In this version, the compression algerithm is slightly changed, but the compression result is still in standard Snappy format. And it will cause almost no change on the compression ratio, while greatly reduce the data dependency and make the parallel decompression more efficient.
 
 Contact
 ----
