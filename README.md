@@ -14,7 +14,7 @@ Document: some document for the decompressor\
 Working platform
 ----
 Currently, the decompressor is used on IBM CAPI with SNAP interface. See: https://github.com/open-power/snap \
-The demo will work based on this platform: fetch data from memory, do decompression and send decompression result back\
+The demo will work based on this platform: fetch data from memory, do decompression and send decompression result back
 
 Recommanded compression software
 ----
