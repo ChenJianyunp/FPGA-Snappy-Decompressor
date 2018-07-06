@@ -23,8 +23,7 @@ In this version, the compression algerithm is slightly changed, but the compress
 
 Contact
 ----
-If you have some questions or recommendations for this project, please contact me.\
-Email address: chenjy0046@gmail.com\
+If you have some questions or recommendations for this project, please contact Jianyu Chen at this email address: chenjy0046@gmail.com\
 
 Parameter of implementation on Vivado:
 ----
