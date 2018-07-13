@@ -1,4 +1,4 @@
-# FPGA-Snappy-Decompressor
+# FPGA-Snappy-Decompressor (not finished)
 A new kind of hardware decompressor for Snappy decompression. It is a new kind of decompressor architecture which can process more than one literal token and copy token parallelly.
 
 Directory and file
