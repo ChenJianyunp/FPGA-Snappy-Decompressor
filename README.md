@@ -27,7 +27,7 @@ If you have some questions or recommendations for this project, please contact J
 
 Parameter of implementation on Vivado:
 ----
-The working frequency of this decompressor on KU115 FPGA (core speed -2) can achive 250MHz when connects to IBM CAPI interface with the following place and route strategy:\
+The working frequency of this decompressor on KU115 FPGA (core speed -2) can achieve 250MHz when connects to IBM CAPI interface with the following place and route strategy:\
 place strategy: Congestion_SpreadLogic_medium\
 route: strategy:  AlternateCLBRouting\
 On default strategy, the timing constrain may fail due to congestion
