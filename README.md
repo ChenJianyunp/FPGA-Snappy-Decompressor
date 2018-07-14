@@ -3,20 +3,19 @@ A new kind of hardware decompressor for Snappy decompression. It is a new kind o
 
 Directory and file
 ---
-IP: xci Vivado IP files for the decompressor\
-Source: Verilog files for the decompressor\
-demo: VHDL file to connect the decompressor to IBM CAPI platform and run a demo\
+user_ip: xci Vivado IP files for the decompressor\
+source: Verilog files for the decompressor\
+interface: VHDL file to connect the decompressor to IBM CAPI platform and run a demo\
 sw: software to test the decompressor on IBM CAPI platform\
-Compression software: a modified version of C-language implementation from Google. It will reduce the data dependency thus get higher decompression speed, while has almost no change on compression ratio\
 Doc: documents for the decompressor\
-(if you want to use decompressor on other platform, only files in IP and Source are needed)
+(if you want to use the decompressor on other platform, only files in user_ip and source are needed)
 
 Working platform
 ----
 Currently, the decompressor is used on IBM CAPI with SNAP interface. See: https://github.com/open-power/snap \
 The demo will work based on this platform: fetch data from memory, do decompression and send decompression result back
 
-Recommanded compression software
+Recommended compression software
 ----
 If you use the decompression software from Google, the perfromance of this decompression maybe bad for some special data with extremly high data dependency. In this case, it is recommended to use a modified compression software: https://github.com/ChenJianyunp/snappy-c \
 In this version, the compression algerithm is slightly changed, but the compression result is still in standard Snappy format. And it will cause almost no change on the compression ratio, while greatly reduce the data dependency and make the parallel decompression more efficient.
@@ -25,7 +24,7 @@ Contact
 ----
 If you have some questions or recommendations for this project, please contact Jianyu Chen at this email address: chenjy0046@gmail.com
 
-Parameter of implementation on Vivado:
+Parameters of implementation on Vivado:
 ----
 The working frequency of this decompressor on KU115 FPGA (core speed -2) can achieve 250MHz when connects to IBM CAPI interface with the following place and route strategy:\
 place strategy: Congestion_SpreadLogic_medium\
