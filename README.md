@@ -10,6 +10,10 @@ sw: software to test the decompressor on IBM CAPI platform\
 Doc: documents for the decompressor\
 (if you want to use the decompressor on other platform, only files in user_ip and source are needed)
 
+Publication
+------
+A work-in-paper is accepted in coference CODES+ISSS, will be public soon
+
 Working platform
 ----
 Currently, the decompressor is used on IBM CAPI with SNAP interface. See: https://github.com/open-power/snap \
