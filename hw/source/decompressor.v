@@ -1,11 +1,19 @@
+/****************************
+Module name: 	decompressor
+Author:			Jianyu Chen
+Email:			chenjy0046@gmail.com
+School:			Delft University of Technology
+Date:			10th Sept, 2018
+Function:		The top level of the decompressor (without the axi protocal controller)
+****************************/
 module decompressor(
 	input clk,
 	input rst_n,
 	input[511:0] data,
 	input valid_in,
 	input start,
-	input[34:0] compression_length,
-	input[31:0] decompression_length,
+	input[34:0] compression_length,		//length of the data before after compression (compressed data)
+	input[31:0] decompression_length,	//length of the data after decompressor (uncompressed data)
 	input wr_ready,
 
 	output data_fifo_almostfull,
@@ -17,7 +25,9 @@ module decompressor(
 	output valid_out
 );
 ///////parameters
-parameter NUM_PARSER=6,NUM_LOG=3,PARSER_MASK=6'b111111;
+parameter 	NUM_PARSER=6,  //number of Parser (2nd level parser)
+			NUM_LOG=3,		//log2(NUM_PARSER)
+			PARSER_MASK=6'b111111; //if set to 0, the corresponding parser will be disabled 
 wire[1023:0] data_w;
 
 wire ct_page_finish;

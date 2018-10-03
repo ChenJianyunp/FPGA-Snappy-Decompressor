@@ -1,3 +1,12 @@
+/****************************
+Module name: 	distributor
+Author:			Jianyu Chen
+Email:			chenjy0046@gmail.com
+School:			Delft University of Technology
+Date:			10th Sept, 2018
+Function:		Get slice from queue_token module (a fifo to store the slices). And distribute the slice to 
+				one of the idle parsers (2nd level parser) using Round-Robin strategy
+****************************/
 module distributor
 #(	parameter NUM_PARSER=6,BASE_INIT=6'b0000_01
 )

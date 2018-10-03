@@ -3,7 +3,11 @@ File name: 		copyread_selector
 Author: 		Jianyu Chen
 School: 		Delft Univsersity of Technology
 Date:			12th July, 2018
-Description:	This is a selector to select read result for 16 BRAMs
+Description:	This is a selector to select write command for 16 BRAMs in 16 ram_module. The source of the incoming
+				commands can also from the copytoken_selector (the recycle unit on the paper). The command from 
+				copytoken_selector will get priority.
+				Round-Robin is the stategy to do the selection if multiple ram_module have copy commands targeting this selector at the same time
+				Each of this module is corresponding to one BRAM
 ********************************************/
 
 module copyread_selector(

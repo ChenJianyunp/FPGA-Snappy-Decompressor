@@ -1,3 +1,14 @@
+/****************************
+Module name: 	ram_module
+Author:			Jianyu Chen
+Email:			chenjy0046@gmail.com
+School:			Delft University of Technology
+Date:			10th Sept, 2018
+Function:		The module to process the BRAM-based command. In each clock cycle, it can process a write operation 
+				and a copy command, and will generate 1 or 2 or 0 write command and maybe also a unsolved copy command.
+				NOTICE: this module contains not only BRAM! but also circuit to process the command and FIFOs to store
+				the commands.
+****************************/
 module ram_module#(
 	 parameter BLOCKNUM=4'b0,   ///define the number of this block, from 0 to 15
 	 HALFULL_THRESH=9'd24

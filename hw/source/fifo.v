@@ -48,16 +48,11 @@ always@(posedge clk)
             end
       2'b11:                  
             begin
-              if(counter==0)
-                fifo_out=din;
-              else
-                begin
-                  ram[write_ptr]=din;
-                  fifo_out=ram[read_ptr];
-                  write_ptr=(write_ptr==7)?0:write_ptr+1;
-                  read_ptr=(read_ptr==7)?0:read_ptr+1;
-                end
-              end
+				ram[write_ptr]=din;
+                fifo_out=ram[read_ptr];
+                write_ptr=(write_ptr==7)?0:write_ptr+1;
+                read_ptr=(read_ptr==7)?0:read_ptr+1;
+            end
         endcase
 
 assign empty=(counter==0); 

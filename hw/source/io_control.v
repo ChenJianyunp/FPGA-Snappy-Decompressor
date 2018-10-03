@@ -1,3 +1,13 @@
+/********************************************
+File name: 		io_control
+Author: 		Jianyu Chen
+School: 		Delft Univsersity of Technology
+Date:			10th Sept, 2018
+Description:	The module to contol the input and output dataflow. 
+				Each burst read will acquire 4K data, except the last burst read of a file (it can be less)
+				Each burst write will write 4K data, also except the last one
+				This module is to control the dataflow of axi protocal interface.
+********************************************/
 module io_control(
 	input clk,
 	input rst_n,

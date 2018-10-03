@@ -352,6 +352,7 @@ always@(posedge clk)begin
 	
 ///to calculate the length of garbage
 	if(~init_flag5)begin
+	//the starting bytes presenting the length of data will be regarded as garbage here
 		casex({data_buff5[143],data_buff5[135],data_buff5[127],data_buff5[119],data_buff5[111]})
 			5'b0xxxx:begin	garbage_cnt<=2'd1;	end
 			5'b10xxx:begin	garbage_cnt<=2'd2;	end

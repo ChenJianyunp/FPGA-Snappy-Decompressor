@@ -4,7 +4,8 @@ Author:			Jianyu Chen
 Email:			chenjy0046@gmail.com
 School:			Delft University of Technology
 Date:			14th July, 2018
-Function:		The module to parse the literal token.
+Function:		The module to parse the literal token. Get the tokens from 2nd level parser (the parser module), parse them
+				into write BRAM-based command. And send the command back to parser
 ****************************/
 module parser_lit#(
 	parameter PARSER_NUM=0
@@ -148,7 +149,8 @@ Author:			Jianyu Chen
 Email:			chenjy0046@gmail.com
 School:			Delft University of Technology
 Date:			14th July, 2018
-Function:		The module to parse the copy token.
+Function:		The module to parse the copy token. Get the tokens from 2nd level parser (the parser module), parse them
+				into copy BRAM-based command. And send the command back to parser
 ****************************/
 
 module parser_copy#(

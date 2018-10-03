@@ -1,4 +1,11 @@
-////it is an fifo to store token with some necessary information to calculate
+/****************************
+Module name: 	queue_token
+Author:			Jianyu Chen
+Email:			chenjy0046@gmail.com
+School:			Delft University of Technology
+Date:			10th Sept, 2018
+Function:		The queue (you can also call it FIFO) to store the slice from the preparser (the first level parser)
+****************************/
 ////format of input : | 18Byte data | 16bit token position | 16bit address | 1bit flag to check whether starts with literal content |
 module queue_token(
 	input clk,

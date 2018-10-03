@@ -1,8 +1,10 @@
 /***********************************
-Name: 		Jianyu Chen
+Author:		Jianyu Chen
 School:		Delft University of Technology
 Date:		7th, July 2018
-Function:	Store the decompression 
+Function:	Store the decompression result and output the result while doing decompression.
+			The content of the BRAM here will be the same as the BRAM in ram_block modules.
+			And the read port of this module is used to output data
 ***********************************/
 module data_out(
 	input clk,

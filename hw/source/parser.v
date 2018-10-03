@@ -1,5 +1,16 @@
+/****************************
+Module name: 	parser
+Author:			Jianyu Chen
+Email:			chenjy0046@gmail.com
+School:			Delft University of Technology
+Date:			10th Sept, 2018
+Function:		This is the 2nd level parser. It will get slice(from the 1st level parser) 
+				from distributor and cut it into tokens. The tokens will be sorted into 2
+				kinds: literal and copy. These two kinds of token will be sent to the two kinds
+				of sub parsers (parser_lit and parser_copy).
+****************************/
 module parser#(
-	parameter PARSER_NUM=0
+	parameter PARSER_NUM=0 //the number lable for parser, for debug only
 )
 (
 	input clk,
@@ -12,7 +23,7 @@ module parser#(
 	input start_lit_in,
 	
 	input valid_in,
-	input block_out_finish,  ///when 
+	input block_out_finish,  
 	input page_finish,
 	
 	output block_finish,

@@ -1,3 +1,15 @@
+/****************************
+Module name: 	copytoken_selector
+Author:			Jianyu Chen
+Email:			chenjy0046@gmail.com
+School:			Delft University of Technology
+Date:			10th Sept, 2018
+Function:		Each of this selector is corresponding to one ram_module (with one BRAM inside). The incoming copy BRAM-based command
+				of this module is from two kind of sources: copy command FIFOs in the parsers and the unsolved command FIFO of the 
+				corresponding ram_module. If the unsolved command FIFO is not full, the command from parser will get the priority, if full,
+				the data from unsolved command FIFO will get a priority.
+				Round-Robin is the stategy to do the selection if multiple parsers have copy commands targeting this selector at the same time
+****************************/
 module copytoken_selector
 #(
 	parameter NUM_PARSER=6,

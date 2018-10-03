@@ -1,3 +1,13 @@
+/********************************************
+File name: 		axi_io
+Author: 		Jianyu Chen
+School: 		Delft Univsersity of Technology
+Date:			10th Sept, 2018
+Description:	Top level of the axi protocal interface, containing the decompressor and an io_control module to control
+				the input and output data flow from axi interface.
+				NOTICE: if you want to migrate the decompressor to other platform or other interface. Only the decompressor
+				module is needed.
+********************************************/
 module axi_io
 #(
 	parameter C_M_AXI_ADDR_WIDTH=64,
