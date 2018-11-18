@@ -28,7 +28,7 @@ module preparser(
 	output[15:0] token_pos,
 	output[16:0] address, /////////[16] is for over flow, [15:0] store the read address
 	output start_lit,  ///whether this 18 Byte starts with literal
-	output[1:0] garbage_cnt_out,
+	output[2:0] garbage_cnt_out,
 	output valid_out,
 	output page_input_finish
 );
@@ -331,7 +331,7 @@ reg[143:0] data_buff6;
 reg[34:0] sum_length;  //[16] is the overflow bit
 reg[12:0] current_length;
 reg start_lit_flag_6;
-reg[1:0] garbage_cnt,garbage_cnt_next;  ///if this page starts with garbage (garbage can be 0 to 2 bytes)
+reg[2:0] garbage_cnt,garbage_cnt_next;  ///if this page starts with garbage (garbage can be 0 to 2 bytes)
 reg lit_garbage,lit_garbage_next;
 
 wire[9:0] addition1_1,addition1_2,addition1_3,addition1_4,addition1_5,addition1_6,addition1_7,addition1_8;
@@ -354,9 +354,11 @@ always@(posedge clk)begin
 	if(~init_flag5)begin
 	//the starting bytes presenting the length of data will be regarded as garbage here
 		casex({data_buff5[143],data_buff5[135],data_buff5[127],data_buff5[119],data_buff5[111]})
-			5'b0xxxx:begin	garbage_cnt<=2'd1;	end
-			5'b10xxx:begin	garbage_cnt<=2'd2;	end
-			5'b110xx:begin	garbage_cnt<=2'd3;	end
+			5'b0xxxx:begin	garbage_cnt<=3'd1;	end
+			5'b10xxx:begin	garbage_cnt<=3'd2;	end
+			5'b110xx:begin	garbage_cnt<=3'd3;	end
+			5'b1110x:begin	garbage_cnt<=3'd4;	end
+			5'b11110:begin	garbage_cnt<=3'd5;	end
 			default:;
 		endcase
 		lit_garbage<=1'b0;
@@ -370,25 +372,25 @@ always@(posedge clk)begin
 	if(valid_5)begin
 	if(tokenpos[0])begin
 		if(data_buff5[23:16]==8'b1111_0000 | data_buff5[17:16]==2'b01)begin
-			garbage_cnt_next	<=2'd1;
+			garbage_cnt_next	<=3'd1;
 			if(data_buff5[23:16]==8'b1111_0000)begin  lit_garbage_next<=1'b1;	end
 			else begin lit_garbage_next<=1'b0;	end
 		end 
 		else if(data_buff5[23:16]==8'b1111_0100 | data_buff5[17:16]==2'b10)begin
-			garbage_cnt_next	<=2'd2;
+			garbage_cnt_next	<=3'd2;
 			if(data_buff5[23:16]==8'b1111_0100)begin  lit_garbage_next<=1'b1;	end
 			else begin lit_garbage_next<=1'b0;	end
-		end else begin garbage_cnt_next	<=2'd0;	lit_garbage_next<=1'b0;end
+		end else begin garbage_cnt_next	<=3'd0;	lit_garbage_next<=1'b0;end
 	end
 	else if(tokenpos[1])begin
 		if(data_buff5[31:24]==8'b1111_0100 | data_buff5[25:24]==2'b10)begin
-			garbage_cnt_next	<=2'd1;
+			garbage_cnt_next	<=3'd1;
 			if(data_buff5[31:24]==8'b1111_0100)begin  lit_garbage_next<=1'b1;	end
 			else begin lit_garbage_next<=1'b0;	end
-		end else begin garbage_cnt_next	<=2'd0;lit_garbage_next<=1'b0;	end
+		end else begin garbage_cnt_next	<=3'd0;lit_garbage_next<=1'b0;	end
 	end
 	else begin
-		garbage_cnt_next	<= 2'b0;
+		garbage_cnt_next	<= 3'b0;
 		lit_garbage_next<=1'b0;
 	end
 	end
@@ -408,7 +410,7 @@ end
 reg[15:0] tokenpos_7;
 reg valid_7;
 reg[16:0] sum_length_7;
-reg[1:0] garbage_cnt7;
+reg[2:0] garbage_cnt7;
 reg start_lit_flag_7;
 reg[143:0] data_buff7;
 ///////compression_length

@@ -54,7 +54,7 @@ data_fifo df0(
 wire[143:0] pre_dout;   //18 bytes
 wire[15:0] pre_tokenpos;
 wire[16:0] pre_address;
-wire[1:0] pre_garbage;
+wire[2:0] pre_garbage;
 wire pre_startlit,pre_validout;
 wire pre_page_input_finish;
 preparser preparser0(
@@ -78,7 +78,7 @@ preparser preparser0(
 wire[143:0] qt_dout;
 wire[15:0] qt_tokenpos;
 wire[16:0] qt_address;
-wire[1:0] qt_garbage;
+wire[2:0] qt_garbage;
 wire qt_startlit,qt_validout;
 wire qt_isempty;
 wire dis_rdreq;
@@ -121,7 +121,7 @@ queue_token qt0(
 wire[143:0] dis_dout;
 wire[15:0] dis_tokenpos;
 wire[16:0] dis_address;
-wire[1:0] dis_garbage;
+wire[2:0] dis_garbage;
 wire dis_startlit;
 wire[NUM_PARSER-1:0] dis_validout;
 wire dis_stop;

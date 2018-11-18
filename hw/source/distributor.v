@@ -18,7 +18,7 @@ module distributor
 	input[143:0] data_in,
 	input[15:0] position_in,
 	input[16:0] address_in,
-	input[1:0] garbage_in,
+	input[2:0] garbage_in,
 	input lit_flag_in,
 	
 	input stop,  ///stop the distributor
@@ -29,7 +29,7 @@ module distributor
 	output[143:0] data_out,
 	output[15:0] position_out,
 	output[16:0] address_out,
-	output[1:0] garbage_out,
+	output[2:0] garbage_out,
 	output lit_flag_out,
 	
 	output rdreq,

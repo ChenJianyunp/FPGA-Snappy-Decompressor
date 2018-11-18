@@ -19,7 +19,7 @@ module parser#(
 	input[143:0] data,
 	input[15:0] tokenpos_in,
 	input[16:0] address_in,
-	input[1:0] garbage_in,
+	input[2:0] garbage_in,
 	input start_lit_in,
 	
 	input valid_in,
@@ -62,7 +62,7 @@ reg[143:0] data_buff;
 reg[15:0] tokenpos_buff;
 reg[16:0] address_buff;
 reg start_lit_buff;
-reg[1:0] garbage_buff;
+reg[2:0] garbage_buff;
 reg[2:0] state;
 reg valid_fsm;
 reg[4:0] length_left;  		//the length left
@@ -139,9 +139,9 @@ always@(posedge clk)begin
 			start_lit_buff	<= start_lit_in;
 			address_buff	<= address_in;
 			
-			length_left		<= 5'd16 - {3'b0,garbage_in};
+			length_left		<= 5'd16 - {2'b0,garbage_in};
 			page_req		<= 1'b0;
-			garbage_buff	<=garbage_in;
+			garbage_buff	<= garbage_in;
 			
 			if(address_in[16]^overflow_record)begin
 				state		<=	3'd3;
