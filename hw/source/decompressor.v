@@ -3,7 +3,7 @@ Module name: 	decompressor
 Author:			Jianyu Chen
 Email:			chenjy0046@gmail.com
 School:			Delft University of Technology
-Date:			10th Sept, 2018
+Date:			24th Nov, 2018
 Function:		The top level of the decompressor (without the axi protocal controller)
 ****************************/
 module decompressor(
@@ -27,7 +27,7 @@ module decompressor(
 ///////parameters
 parameter 	NUM_PARSER=6,  //number of Parser (2nd level parser)
 			NUM_LOG=3,		//log2(NUM_PARSER)
-			PARSER_MASK=6'b111111; //if set to 0, the corresponding parser will be disabled 
+			PARSER_MASK=6'b111111; //if set to 0, the corresponding parser will be disabled, for test only
 wire[1023:0] data_w;
 
 wire ct_page_finish;
@@ -36,11 +36,21 @@ wire dout_block_out_finish;
 wire df_valid,df_empty;
 wire[127:0] df_dout;
 wire qt_almostfull;
+reg df_wr_en;
+always@(*)begin
+	/*valid_in is RVALID signal in axi, and fifo_almostfull is the RRREADY signal,
+	the input is valid only if both signals are high*/
+	if(valid_in & (~data_fifo_almostfull))begin
+		df_wr_en <= 1'b1;
+	end else begin
+		df_wr_en <= 1'b0;
+	end
+end
 data_fifo df0(
 	.clk(clk),
 	.srst(~rst_n),
 	.din(data),
-	.wr_en(valid_in & (~data_fifo_almostfull)),
+	.wr_en(df_wr_en),
 	.rd_en((~qt_almostfull) & ~df_empty),
 	.dout(df_dout),
 	.almost_full(data_fifo_almostfull),
@@ -436,7 +446,6 @@ ram_module
 	
 	////////signal for unsolved fifo
 	.unsolved_rd(cts_unsolved_rd),
-//	.unsolved_almost_full(cts_unsolved_full),
 	.unsolved_half_full(ram_halffull[ram_i]),
 	.unsolved_data_out(cts_unsolved_data),
 	.unsolved_valid_out(cts_unsolved_valid),
@@ -496,24 +505,10 @@ control#
 
 	.cl_finish(dout_cl_finish),
 	.page_finish(ct_page_finish)
-//	.block_out_finish()
 	
 );
 
-//assign done=dout_cl_finish;
 assign done=dout_page_out_finish;
 assign data_out=dout_dout;
-/*
-select
-#(
-	.NUM_SEL(16), 
-	.NUM_LOG(4), 
-	.NUM_WIDTH(64)
-)out_select
-(
-    .data_in(dout_dout),
-    .sel(data_select),
-    .data_out(data_out)
-);
-*/
+
 endmodule 

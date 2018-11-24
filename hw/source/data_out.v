@@ -61,6 +61,12 @@ always@(posedge clk)begin
 	end	
 end
 
+
+/*In the beginning, the valid bits in all BRAM are 0, and the data is valid when the corresponding valid bit is set to 1.
+After writing the first block, the valid bit is all 1 (if the first bit is 64KB). So in the second block, data is valid 
+when the corresponding valid bit is set to 1. After decompressing the file, reset all valid bit to 0. In order to make the
+logic easy, i have "valid_inverse" register, this register is inversed after every block. The valid bit is NOR with valid_inverse
+before writing to BRAM and after reading from BRAM*/
 always@(posedge clk)begin
 	if(~rst_n)begin
 		state<=3'd0;
@@ -97,7 +103,6 @@ always@(posedge clk)begin
 			valid_inverse	<=~valid_inverse;
 			state		<=3'd1;		
 			block_out_finish_r<=1'b1;
-//			rd_address	<=rd_address_w;
 			rd_valid	<=1'b0;
 		end
 	end
@@ -128,7 +133,10 @@ always@(posedge clk)begin
 end
 
 reg[9:0] rd_address_lowerl;
+/*the bandwidth of 16BRAM is 1024bit, however, the bandwidth of axi is only 512bit. So i take turns to read
+the lower 512 bits and and the higher 512 bits*/
 always@(*)begin
+	//if the rd_address[0] is 0, read the lower 512 bits, and the other way around
 	if(((rd_address[0]==1'b0&valid_lower)|(rd_address[0]==1'b1&valid_upper))&ready)begin
 		rd_address_w	<=rd_address+26'b1;
 		valid_out_w<=1'b1;		
