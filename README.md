@@ -37,5 +37,5 @@ On default strategy, the timing constrain may fail due to congestion
 
 Update log
 ----
-18-11-2018: Fix a bug on the length of garbage_cnt
+18-11-2018: Fix a bug on the length of garbage_cnt\
 25-11-2018: Fix a bug of overflow on page_fifo
