@@ -224,7 +224,7 @@ static int decompression_test(struct snap_card* dnc,
 //	uint64_t addr_in = 0x0ull;
 	ssize_t size = 0;
 	size_t set_size = 1*64*1024;
-	const char *input = "/home/jianyuchen/bulk/snap7/testdata/alice80k.snp";
+	const char *input = "/home/jianyuchen/bulk/snap14/testdata/alice29.txt.snp";
 	size = __file_size(input);
 	printf("size of the input is %d \n",(int)size);
 	ibuff = snap_malloc(size);
@@ -260,7 +260,7 @@ software side, always allocate a more memory for writing back. */
 	}
 	/******output the decompression result******/
 	FILE * pFile;
-	pFile=fopen("/home/jianyuchen/bulk/snap7/testdata/test.txt","wb");
+	pFile=fopen("/home/jianyuchen/bulk/snap14/testdata/test.txt","wb");
 	fwrite((void*)obuff,sizeof(char),set_size,pFile);
 	
 	

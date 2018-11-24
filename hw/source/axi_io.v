@@ -104,7 +104,6 @@ io_control io_control0(
 	.wr_req_ack(dma_wr_req_ack),
 	.wr_len(dma_wr_len),
 	.wr_address(dma_wr_addr),
-//	.wr_last(dma_wr_data_last),
 	.bready(dma_wr_bready),
 	
 	.decompression_length(decompression_length),

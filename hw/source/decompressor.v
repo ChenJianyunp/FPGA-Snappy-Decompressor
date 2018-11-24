@@ -40,7 +40,7 @@ data_fifo df0(
 	.clk(clk),
 	.srst(~rst_n),
 	.din(data),
-	.wr_en(valid_in),
+	.wr_en(valid_in & (~data_fifo_almostfull)),
 	.rd_en((~qt_almostfull) & ~df_empty),
 	.dout(df_dout),
 	.almost_full(data_fifo_almostfull),

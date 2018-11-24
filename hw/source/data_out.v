@@ -94,10 +94,11 @@ always@(posedge clk)begin
 	end
 	3'd2:begin  //clean the input
 		if(valid_upper & ready)begin
-			state		<=3'd1;
-			valid_inverse	<=~valid_inverse;		
+			valid_inverse	<=~valid_inverse;
+			state		<=3'd1;		
 			block_out_finish_r<=1'b1;
-			rd_address	<=rd_address_w;
+//			rd_address	<=rd_address_w;
+			rd_valid	<=1'b0;
 		end
 	end
 	

@@ -314,7 +314,6 @@ blockram result_ram0(
 	.addra(lit_address_buff),
 	.clka(clk),
 	.dina({lit_valid_buff[7],lit_data_buff[63:56],lit_valid_buff[6],lit_data_buff[55:48],lit_valid_buff[5],lit_data_buff[47:40],lit_valid_buff[4],lit_data_buff[39:32],lit_valid_buff[3],lit_data_buff[31:24],lit_valid_buff[2],lit_data_buff[23:16],lit_valid_buff[1],lit_data_buff[15:8],lit_valid_buff[0],lit_data_buff[7:0]}),
-//	.dina({lit_valid_buff,lit_data_buff}),
 	.ena(valid_wr_buff),
 	.wea(lit_byte_enable),
 	
