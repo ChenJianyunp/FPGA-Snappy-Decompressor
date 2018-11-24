@@ -12,7 +12,7 @@ Doc: documents for the decompressor\
 
 Publication
 ------
-A work-in-paper is accepted in coference CODES+ISSS, will be public soon
+A work-in-paper is accepted in the coference CODES+ISSS, see: https://ieeexplore.ieee.org/document/8525953
 
 Working platform
 ----
@@ -34,3 +34,8 @@ The working frequency of this decompressor on KU115 FPGA (core speed -2) can ach
 place strategy: Congestion_SpreadLogic_medium\
 route: strategy:  AlternateCLBRouting\
 On default strategy, the timing constrain may fail due to congestion
+
+Update log
+----
+18-11-2018: Fix a bug on the length of garbage_cnt
+25-11-2018: Fix a bug of overflow on page_fifo
