@@ -54,40 +54,12 @@ reg init_flag;
 reg[127:0] data_buff2;
 reg[143:0] data_buff2_1; 
 reg valid_2;
-reg[34:0] compression_length;  ///[34:4]: number of 16B,  [3:0] whether there is an extra unfull data
+reg[34:0] compression_length, data_cnt_max;  ///[34:4]: number of 16B,  [3:0] whether there is an extra unfull data
 
-reg last_flag,finish_flag;   ////////whether all data has passed
-reg[15:0] pos_final;  ///token pos of final
+reg last_flag,last_flag_delay,finish_flag;   ////////whether all data has passed
+reg[15:0] pos_final,pos_final_delay;  ///token pos of final
 reg[30:0] data_cnt;
-//reg[15:0] pos_final2;  ///token pos of final
 always@(posedge clk)begin
-/***************solved the finish case*********/
-	if(start)begin
-		compression_length	<= compression_length_in;
-	end
-	
-	if(~rst_n)begin
-		data_cnt<=30'b0;
-		last_flag<=1'b0;
-		pos_final<=16'hffff;
-	end else if(valid_1)begin
-		if({data_cnt,4'b0}<=compression_length)begin
-			last_flag<=1'b0;
-		end else begin
-			data_cnt<=30'b0;
-			last_flag<=1'b1;
-			pos_final<=~(16'hffff>>compression_length[3:0]);
-		end
-	end else begin
-		last_flag<=1'b0;
-	end
-	
-	if(~rst_n)begin   //after the last data passed, make garbage invalid
-		finish_flag	<=1'b1;
-	end else if(last_flag) begin
-		finish_flag	<=1'b0;
-	end
-	
 /*****************************
 This decompressor can only process the token with the length of 1 byte, 2 bytes and 3bytes (in theory,
 there are longer token, but google's implementation cannot generate longer token). So it is possible that
@@ -106,24 +78,68 @@ in order to do so, always buffer a 16-byte and wait for the next 16-byte data
 	end else if(valid_1)begin
 		init_flag<=1'b1;
 	end
+
+/***************************
+solved the last slice, since one 16-byte data is buffered, we need hide the first valid signal and generate 
+an extra valid signal for the last slice. After all the data is passed, make finish_flag 0 to avoid the garbage
+**************************/
+	if(start)begin
+		compression_length	<= compression_length_in;
+		data_cnt_max		<= compression_length_in - 35'd16;
+	end
 	
-//	pos_final2<=pos_final;
+	if(~rst_n)begin
+		data_cnt		<=30'b0;
+		last_flag		<=1'b0;
+		pos_final		<=16'hffff;
+	end else if(valid_1)begin
+		if({data_cnt,4'b0}<data_cnt_max)begin
+			last_flag	<=1'b0;
+			data_cnt	<= data_cnt + 31'b1;
+		end else begin
+			data_cnt	<= 3'b0;
+			last_flag	<= 1'b1;
+			
+			/*since the last 16-byte block may be not full, there can be some garbage at the end of the last slice.
+			These garbage data can be misunderstook as token and cause some unpredictable consequency, so i set pos_final
+			as a mask to filter these garbage data*/
+			if(compression_length[3:0] == 4'b0)begin
+				pos_final		<=16'hffff;
+			end else begin
+				pos_final	<= ~(16'hffff>>compression_length[3:0]);
+			end
+		end
+	end else begin
+		last_flag<=1'b0;
+	end
+	
+	if(~rst_n)begin   //after the last data passed, make garbage invalid
+		finish_flag	<=1'b1;
+	end else if(last_flag_delay) begin
+		finish_flag	<=1'b0;
+	end
+	if(~rst_n)begin
+		last_flag_delay	<= 1'b0;
+		pos_final_delay <= 16'hffff;
+	end else begin
+		last_flag_delay <= last_flag;
+		pos_final_delay <= pos_final;
+	end
+		
+
+	
 	valid_2	<=	valid_1&init_flag;
-//	rst_2	<=	rst_1;
 end
 
 
 reg[143:0] data_buff3;
 reg valid_3;
-//reg rst_3;
 reg[15:0] pos_final3;  ///token pos of final
 always@(posedge clk)begin
 	data_buff3<=data_buff2_1;
 
-	pos_final3<=pos_final;
-	valid_3	<=	(valid_2|last_flag)&finish_flag;
-//	rst_3	<=	rst_2;
-	
+	pos_final3	<= pos_final_delay;
+	valid_3		<= (valid_2|last_flag_delay)&finish_flag;	
 end
 
 
