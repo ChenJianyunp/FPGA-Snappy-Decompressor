@@ -167,8 +167,6 @@ always@(posedge clk)begin
 		tokenpos_buff		<=	(tokenpos_buff<<lza_z);
 		valid_fsm			<=	tokenpos_buff[15] |	start_lit_buff;
 		
-		//if(start_lit_buff==1'b1)begin	start_lit_buff	<=	1'b0 end
-		
 		if(lza_a==1'b0)begin empty_flag<=1'b1; end
 		else begin empty_flag<=1'b0; end
 		
@@ -187,15 +185,22 @@ always@(posedge clk)begin
 		address_buff	<=address_buff_w;
 		
 		if(start_lit_buff==1'b1)begin
-			lit_length		<=(lza_a?(lza_z-4'b1):4'b1111)-garbage_buff;
+		//lza_z is the length of leading zero, 
+			if(lza_a)begin
+			//lit_length should be the length minus one
+				lit_length 	<= lza_z-4'b1;
+			end else begin
+			//if no start of token, all of data are literal
+				lit_length 	<= 4'b1111-garbage_buff;
+			end
+			
 			lit_data		<=data_buff[143:16];
 			lit_valid		<=1'b1;
 			lit_address     <=address_buff[15:0];
 			
 			copy_valid		<=1'b0;
 			start_lit_buff	<=1'b0;
-//			address_buff	<=address_buff+lza_z;
-//			lit_start_lit	<=1'b1;
+
 			length_left		<=length_left-lza_z;	
 		end
 		else begin
@@ -212,7 +217,7 @@ always@(posedge clk)begin
 				lit_address     <=address_buff[15:0];
 				copy_valid		<=1'b0;
 				
-//				address_buff	<=address_buff+17'b1+data_buff[135:128];
+				//this token (including the corresponding literal content) will certainly exceed this slice
 				length_left		<=5'b0;
 			end
 			
@@ -220,13 +225,13 @@ always@(posedge clk)begin
 				if(length_left==5'd1||length_left==5'd2||length_left==5'd3)begin	lit_valid<=1'b0; end  ///if this is the last byte or last two bytes or last three bytes, there is no literal content
 				else begin lit_valid<=1'b1; end
 				
-				lit_length	<=length_left-5'd2;		//in this case, the length will be at least 60
+				lit_length	<=length_left-5'd3;		//in this case, the length will be at least 61
 				
 				lit_data		<={data_buff[119:16],24'b0};
 				lit_address     <=address_buff[15:0];
 				copy_valid		<=1'b0;
 				
-//				address_buff	<=address_buff+17'b1+{data_buff[127:120],data_buff[135:128]};
+				//this token (including the corresponding literal content) will certainly exceed this slice
 				length_left		<=5'b0;
 			end
 			
@@ -239,42 +244,37 @@ always@(posedge clk)begin
 			end
 			
 			8'bxxxx_xx01:begin
-			if(copy_sep_2b)begin  ///if offset <=(length-1) -> offset<length	
-				copy_length		<=offset_2b-16'b1;
-			end
-			else begin
-				copy_length		<=length_2b;
-			end
-			copy_offset			<=offset_2b;
-			copy_address		<=address_buff[15:0];
-			copy_length_record	<=length_2b-offset_2b;
-			copy_offset_record	<=offset_2b;
-//				copy_data		<=data_buff[143:120];
-//				copy_address	<=address_buff[15:0];
+				if(copy_sep_2b)begin  ///if offset <=(length-1) -> offset<length	
+					copy_length		<=offset_2b-16'b1;
+				end
+				else begin
+					copy_length		<=length_2b;
+				end
+				copy_offset			<=offset_2b;
+				copy_address		<=address_buff[15:0];
+				copy_length_record	<=length_2b-offset_2b;
+				copy_offset_record	<=offset_2b;
+
 				copy_valid		<=1'b1;
 				lit_valid		<=1'b0;
 				
-//				address_buff	<=address_buff+5'd4+data_buff[140:138];
 				length_left		<=length_left-5'd2;
 			end
 			
 			8'bxxxx_xx10:begin
-			if(copy_sep_3b)begin  ///if offset <=(length-1) -> offset<length	
-				copy_length		<=offset_3b-16'b1;
-			end
-			else begin
-				copy_length		<=length_3b;
-			end
-			copy_offset			<=offset_3b;
-			copy_address		<=address_buff[15:0];
-			copy_length_record	<=length_3b-offset_3b;
-			copy_offset_record	<=offset_3b;
-//				copy_data		<=data_buff[143:120];
-//				copy_address	<=address_buff[15:0];
+				if(copy_sep_3b)begin  ///if offset <=(length-1) -> offset<length	
+					copy_length		<=offset_3b-16'b1;
+				end
+				else begin
+					copy_length		<=length_3b;
+				end
+				copy_offset			<=offset_3b;
+				copy_address		<=address_buff[15:0];
+				copy_length_record	<=length_3b-offset_3b;
+				copy_offset_record	<=offset_3b;
 				copy_valid		<=1'b1;
 				lit_valid		<=1'b0;
 				
-//				address_buff	<=address_buff+5'd1+data_buff[143:138];
 				length_left		<=length_left-5'd3;
 			end
 			
@@ -294,11 +294,9 @@ always@(posedge clk)begin
 				lit_data		<={data_buff[135:16],8'b0};
 				lit_address     <=address_buff[15:0];
 				
-//				address_buff	<=address_buff+17'b1+{10'b0,data_buff[143:138]};
-				
 				copy_valid		<=1'b0;
 				
-				length_left		<=length_left-5'b1-data_buff[143:138];
+				length_left		<=length_left-5'd2-data_buff[143:138];
 			end	
 		endcase
 		end
@@ -321,6 +319,12 @@ always@(posedge clk)begin
 		copy_valid		<=1'b0;
 	end
 	
+	/*
+	In Snappy, it is allowed to have offset < length, for example, in "abc abc abc abc" every "abc" 
+	is regarded as repitation of the last "abc" (except the first "abc", which is literal content), 
+	it is extremly slow to be solved directly, so I add this special state, in this state, each "abc" 
+	will be regarded as the repitition of the first "abc"
+	*/
 	3'd4:begin  ///solve the offset<length
 		if(copy_offset_record<=copy_length_record)begin
 			copy_length<=copy_length;
@@ -348,9 +352,10 @@ begin
 	lit_valid	<=1'b0;
 end
 
+
 LZA16 lza16(
-	.x({1'b0,tokenpos_buff[14:0]}),
-	.a(lza_a),
+	.x({1'b0,tokenpos_buff[14:0]}), // input data
+	.a(lza_a),						//
 	.z(lza_z)
 );
 ////////////////generate parser for literal and its FIFOs
@@ -560,10 +565,13 @@ assign lit_ram_select_out[15:12]={lit_ram_select_temp[15],lit_ram_select_temp[11
 
 endmodule 
 
+/*
+Leading zero counter
+*/
 module LZA16(
-			input[15:0] x,
-			output a,
-			output[3:0] z
+			input[15:0] x,	//the input
+			output a,		//0 if every bit in x is zero
+			output[3:0] z	//the length of leading zero in x
 			);
 wire[3:0] a1;
 wire[7:0] z1;
