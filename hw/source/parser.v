@@ -201,7 +201,12 @@ always@(posedge clk)begin
 			copy_valid		<=1'b0;
 			start_lit_buff	<=1'b0;
 
-			length_left		<=length_left-lza_z;	
+			if(lza_a==1'b0)begin 
+				length_left		<=5'b0;
+			end else begin
+				length_left		<=length_left-lza_z;
+			end
+				
 		end
 		else begin
 		
@@ -211,7 +216,7 @@ always@(posedge clk)begin
 				if(length_left==5'd1||length_left==5'd2)begin	lit_valid<=1'b0; end  ///if this is the last byte or last two bytes, there is no literal content
 				else begin lit_valid<=1'b1; end
 				
-				lit_length	<=length_left-5'd2;  	//in this case, the length will be at least 60
+				lit_length		<=length_left-5'd2;  	//in this case, the length will be at least 60
 				
 				lit_data		<={data_buff[127:16],16'b0};
 				lit_address     <=address_buff[15:0];
@@ -225,7 +230,7 @@ always@(posedge clk)begin
 				if(length_left==5'd1||length_left==5'd2||length_left==5'd3)begin	lit_valid<=1'b0; end  ///if this is the last byte or last two bytes or last three bytes, there is no literal content
 				else begin lit_valid<=1'b1; end
 				
-				lit_length	<=length_left-5'd3;		//in this case, the length will be at least 61
+				lit_length		<=length_left-5'd3;		//in this case, the length will be at least 61
 				
 				lit_data		<={data_buff[119:16],24'b0};
 				lit_address     <=address_buff[15:0];
@@ -258,7 +263,13 @@ always@(posedge clk)begin
 				copy_valid		<=1'b1;
 				lit_valid		<=1'b0;
 				
-				length_left		<=length_left-5'd2;
+				//this token is 2-byte long
+				if(lza_a==1'b0)begin
+					length_left		<=5'b0;
+				end else begin
+					length_left		<=length_left-5'd2;
+				end
+				
 			end
 			
 			8'bxxxx_xx10:begin
@@ -275,14 +286,20 @@ always@(posedge clk)begin
 				copy_valid		<=1'b1;
 				lit_valid		<=1'b0;
 				
-				length_left		<=length_left-5'd3;
+				//this token is 3-byte long
+				if(lza_a==1'b0)begin
+					length_left		<=5'b0;
+				end else begin
+					length_left		<=length_left-5'd3;
+				end
+				
 			end
 			
 			8'bxxxx_xx11:begin
 				$display("wrong case 8'bxxxx_xx11  %d",PARSER_NUM);
 			end
 			
-			default:begin  ///whe the literal token has 1 byte
+			default:begin  ///when the literal token has 1 byte
 				
 				if(length_left==5'd1)begin	lit_valid<=1'b0; end  ///if this is the last byte, there is no literal content
 				else begin lit_valid<=1'b1; end
@@ -296,7 +313,13 @@ always@(posedge clk)begin
 				
 				copy_valid		<=1'b0;
 				
-				length_left		<=length_left-5'd2-data_buff[143:138];
+				 
+				if(lza_a==1'b0)begin
+					length_left		<=5'b0;
+				end else begin
+					length_left		<=length_left-5'd2-data_buff[143:138];
+				end
+				
 			end	
 		endcase
 		end
@@ -309,10 +332,18 @@ always@(posedge clk)begin
 	
 	3'd3:begin  ///if the overflow of address happens, it will first go to this state
 		if(page_finish)begin
+		//if this file is finished and the BRAMs are cleaned, go back to the initial state
 			state	<=3'd0;
 		end else 
 		if(block_out_finish)begin
-			state	<=3'd2;
+		
+			if(length_left	==5'b0)begin
+				state	<=3'd1;
+			end else begin
+			//if this slice is not totally processed, go back to state2 to continue
+				state	<=3'd2;
+			end
+			
 		end
 		block_finish_r	<=1'b0;
 		lit_valid		<=1'b0;
@@ -436,7 +467,6 @@ generate
 		.clk(clk),
 		.srst(~rst_n),
 	
-//		.almost_full(),
 		.full(debug_literal_full),
 		/////////9 bit address + 4 bit ram select + 8 bit writevalid + 64bit data= 85 bits
 		.din({lit_address_w[lit_i*9+8:lit_i*9],lit_ram_select_w[lit_i*4+3:lit_i*4],lit_wr_w[lit_i*9+7:lit_i*9],lit_data_w[lit_i*64+63:lit_i*64]}),
@@ -469,13 +499,11 @@ parser_copy #(
 )parser_copy0(
 	.clk(clk),
 	.length_in(copy_length),
-//	.data(copy_data),  ///[23:16] [15:8] [7:0]
 	.address_in(copy_address),	/////////[2:0]:shift [6:3]index for bram [15:7]: bram address 
 	.offset_in(copy_offset),
 	.valid_in(copy_valid & ~stop_flag_delay),
 	
 	.address_out(copy_address_w), 		//address for 16 rams, each is 9-bits
-//	.valid_out(copy_valid_out),
 	.ram_select(copy_ram_select_w),     ///chose it wants to read from a ram
 	.rd_out(copy_rd_w),
 	.offset_out(copy_offset_w)
