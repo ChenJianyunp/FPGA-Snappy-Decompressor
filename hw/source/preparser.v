@@ -471,7 +471,8 @@ begin
 	tokenpos_next<=2'b01;
 end
 
-assign page_input_finish=finish_flag;
+//when finish_flag is set to high, all work of preparser has finished
+assign page_input_finish=~finish_flag;
 
 assign data_out=data_buff7;
 assign token_pos=tokenpos_7;
