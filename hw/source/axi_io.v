@@ -105,7 +105,7 @@ io_control io_control0
 	.rd_last(dma_rd_data_last),
 	.data_ready(dec_almostfull), //whether decompressors are ready to receive data
 	.decompression_length(decompression_length),
-	.compression_length({3'b0,compression_length})
+	.compression_length(compression_length)
 );
 
 assign dma_rd_data_taken=~dec_almostfull;

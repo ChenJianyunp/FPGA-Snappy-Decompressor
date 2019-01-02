@@ -156,9 +156,8 @@ static void action_decompress(struct snap_card* h,
 
 static int do_decompression(struct snap_card *h,
 			snap_action_flag_t flags,
-			int action,
 			int timeout,
-			job_description[] jd_array, //array to store the jobs
+			job_description *jd_array, //array to store the jobs
 			int num_job //number of jobs in the jd_array
 			)
 
@@ -178,7 +177,7 @@ static int do_decompression(struct snap_card *h,
 	//send all the job descriptions to the card 
 	int i;
 	for(i = 0; i < num_job ; i++)
-		action_decompress(h, action, jd_array[i]);
+		action_decompress(h, jd_array[i]);
 	
 	rc = action_wait_idle(h, timeout, &td);
 //	print_time(td, memsize);
@@ -217,7 +216,7 @@ int get_decompression_length(uint8_t * src){
 		return length;
 }
 
-static job_description generate_job(char *file, int job_id){
+static job_description generate_job(const char *file, int job_id){
 		int rc;
 	void *src = NULL;
 	void *dest = NULL;
@@ -233,7 +232,7 @@ static job_description generate_job(char *file, int job_id){
 	ibuff = snap_malloc(input_size);
 	if (ibuff == NULL){
 		printf("ibuff null");
-		return 1;
+		return jd;
 	}
 	
 	rc = __file_read(file, ibuff, input_size);
@@ -246,13 +245,13 @@ software side, always allocate a more memory for writing back. */
 	obuff = snap_malloc(output_size+128);
 	if (obuff == NULL){
 		printf("obuff null");
-		return 1;
+		return jd;
 	}
 	memset(obuff, 0x0, output_size+128);
 	
 	if (rc < 0){
 		printf("rc null");
-		return 1;
+		return jd;
 	}
 	src = (void *)ibuff;
 	dest = (void *)obuff;
@@ -263,6 +262,7 @@ software side, always allocate a more memory for writing back. */
 	jd.wr_size = output_size;
 	jd.job_id = job_id & 0xFFFF; 
 	
+	return jd;
 }
 
 static void free_job(job_description jd){
@@ -272,7 +272,6 @@ static void free_job(job_description jd){
 
 static int decompression_test(struct snap_card* dnc,
 			snap_action_flag_t attach_flags,
-			int action,
 			int timeout/* Timeout to wait in sec */
 			)    
 {
@@ -284,22 +283,22 @@ static int decompression_test(struct snap_card* dnc,
 	jd[1] = generate_job("/home/jianyuchen/bulk/snap17/testdata/alice32k.snp", 1);
 	jd[2] = generate_job("/home/jianyuchen/bulk/snap17/testdata/alice32k.snp", 2);
 	
-	rc = do_decompression(dnc, attach_flags, action, timeout, jd, 3);
+	rc = do_decompression(dnc, attach_flags, timeout, jd, 3);
 	if (0 == rc) {
 		printf("decompression finished");
 	}
 	/******output the decompression result******/
 	FILE * pFile0;
 	pFile0=fopen("/home/jianyuchen/bulk/snap17/testdata/test0.txt","wb");
-	fwrite((void*)jd[0].obuff,sizeof(char),jd[0].wr_size,pFile0);
+	fwrite((void*)jd[0].dest,sizeof(char),jd[0].wr_size,pFile0);
 	
 	FILE * pFile1;
 	pFile1=fopen("/home/jianyuchen/bulk/snap17/testdata/test1.txt","wb");
-	fwrite((void*)jd[1].obuff,sizeof(char),jd[1].wr_size,pFile1);
+	fwrite((void*)jd[1].dest,sizeof(char),jd[1].wr_size,pFile1);
 	
 	FILE * pFile2;
 	pFile2=fopen("/home/jianyuchen/bulk/snap17/testdata/test2.txt","wb");
-	fwrite((void*)jd[2].obuff,sizeof(char),jd[2].wr_size,pFile2);
+	fwrite((void*)jd[2].dest,sizeof(char),jd[2].wr_size,pFile2);
 	
 	free_job(jd[0]);
 	free_job(jd[1]);
@@ -358,7 +357,6 @@ int main(int argc, char *argv[])
 //	int delay;
 	int card_no = 0;
 	int cmd;
-	int action = 0;
 //	int num_4k = 1;	/* Default is 1 4 K Blocks */
 	int num_64 = 0;	/* Default is 0 64 Bytes Blocks */
 	int rc = 1;
@@ -388,7 +386,6 @@ int main(int argc, char *argv[])
 			{ "start",    required_argument, NULL, 's' },
 			{ "end",      required_argument, NULL, 'e' },
 			{ "interval", required_argument, NULL, 'i' },
-			{ "action",   required_argument, NULL, 'a' },
 			{ "size4k",   required_argument, NULL, 'S' },
 			{ "size64",   required_argument, NULL, 'B' },
 			{ "iter",     required_argument, NULL, 'N' },
@@ -496,11 +493,9 @@ int main(int argc, char *argv[])
 		goto __exit1;
 	}
 	snap_mmio_read64(dn, SNAP_S_CIR, &cir);
-//	VERBOSE1("Start of Action: %d Card Handle: %p Context: %d\n", action, dn,
-//		(int)(cir & 0x1ff));
 
 	//do decompression
-	rc=decompression_test(dn,attach_flags,action,timeout);
+	rc=decompression_test(dn,attach_flags,timeout);
 
 __exit1:
 	// Unmap AFU MMIO registers, if previously mapped
