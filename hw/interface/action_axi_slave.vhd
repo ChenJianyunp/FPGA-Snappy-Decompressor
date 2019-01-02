@@ -36,21 +36,23 @@ entity action_axi_slave is
 	);
 	port (
 		-- Users to add ports here
-                reg_0x10_i      : in  std_logic_vector(31 downto 0);
-                reg_0x14_i      : in  std_logic_vector(31 downto 0);
-                reg_0x20_o      : out std_logic_vector(31 downto 0);
-                reg_0x30_o      : out std_logic_vector(31 downto 0);
-                reg_0x34_o      : out std_logic_vector(31 downto 0);
-                reg_0x38_o      : out std_logic_vector(31 downto 0);
-                reg_0x3c_o      : out std_logic_vector(31 downto 0);
-                reg_0x40_o      : out std_logic_vector(31 downto 0);
-                reg_0x44_o      : out std_logic_vector(31 downto 0);
-				reg_0x48_o      : out std_logic_vector(31 downto 0);
-                int_enable_o    : out std_logic;
-                app_start_o     : out std_logic;
-                app_done_i      : in  std_logic;
-                app_ready_i     : in  std_logic;
-                app_idle_i      : in  std_logic;
+                reg_0x10_i      		: in  std_logic_vector(31 downto 0);
+                reg_0x14_i      		: in  std_logic_vector(31 downto 0);
+                reg_0x20_o      		: out std_logic_vector(31 downto 0);
+                src_addr_lower  		: out std_logic_vector(31 downto 0);
+                src_addr_upper  		: out std_logic_vector(31 downto 0);
+                des_addr_lower  		: out std_logic_vector(31 downto 0);
+                des_addr_upper  		: out std_logic_vector(31 downto 0);
+                compression_length      : out std_logic_vector(31 downto 0);
+				decompression_length	: out std_logic_vector(31 downto 0);
+				job_id_o				: out std_logic_vector(15 downto 0);
+				job_valid_o				: out std_logic;
+				
+				int_enable_o    		: out std_logic;
+                app_start_o     		: out std_logic;
+                app_done_i      		: in  std_logic;
+                app_ready_i     		: in  std_logic;
+                app_idle_i      		: in  std_logic;
                
                 
 		-- User ports ends
@@ -162,10 +164,12 @@ architecture action_axi_slave of action_axi_slave is
 	signal slv_reg_wren	: std_logic;
 	signal reg_data_out	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
 	signal byte_index	: integer;
+		signal job_valid_q      : std_logic;
         signal idle_q           : std_logic;
         signal app_start_q      : std_logic;
         signal app_done_q       : std_logic;
         signal slv_reg0_bit0_q  : std_logic;
+		signal slv_reg12_bit16_q  : std_logic;
 
 begin
 	-- I/O Connections assignments
@@ -550,14 +554,15 @@ begin
         -- Reiner
 
         app_start_o     <= app_start_q;
+		job_valid_o		<= job_valid_q;
         reg_0x20_o      <= slv_reg8;
-        reg_0x30_o      <= slv_reg12;
-        reg_0x34_o      <= slv_reg13;
-        reg_0x38_o      <= slv_reg14;
-        reg_0x3c_o      <= slv_reg15;
-        reg_0x40_o      <= slv_reg16;
-        reg_0x44_o      <= slv_reg17;
-		reg_0x48_o		<= slv_reg18;
+        job_id_o      	<= slv_reg12(15 downto 0);
+        src_addr_lower  <= slv_reg13;
+        src_addr_upper  <= slv_reg14;
+        des_addr_lower  <= slv_reg15;
+        des_addr_upper  <= slv_reg16;
+        compression_length	<= slv_reg17;
+		decompression_length<= slv_reg18;
         process( S_AXI_ACLK ) is
           variable app_done_i_q    : std_logic;
           
@@ -567,11 +572,14 @@ begin
 	    if ( S_AXI_ARESETN = '0' ) then
 	      app_start_q     <=    '0';
 	      app_done_q      <=    '0';
+		  job_valid_q	  <=    '0';
               app_done_i_q    :=    '0';
               slv_reg0_bit0_q <=    '0';
+			  slv_reg12_bit16_q <=    '0';
               idle_q          <=    '0';
      	    else
               idle_q          <= app_idle_i;
+			  slv_reg12_bit16_q <= slv_reg12(16);
               slv_reg0_bit0_q <= slv_reg0(0);
               app_done_i_q    := app_done_i;
               loc_addr        := axi_awaddr(ADDR_LSB + OPT_MEM_ADDR_BITS-1 downto ADDR_LSB);
@@ -588,7 +596,12 @@ begin
               if idle_q = '1' and app_idle_i = '0' then
                 app_start_q <= '0';
               end if;
-                
+              
+			  if slv_reg12_bit16_q = '0' and slv_reg12(16) = '1' then
+				job_valid_q <= '1';
+			  else 
+				job_valid_q <= '0';
+			  end if;
 	    end if;
 	  end if;
 	end process;

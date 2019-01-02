@@ -63,3 +63,173 @@ assign prog_full=fifo_half;
 assign full=fifo_full;
 
 endmodule
+
+module pending_fifo(
+	input clk,
+	input rst_n,
+	
+	input wr,
+	
+	input[63:0] des_addr_in,
+	input[34:0] rd_compression_length_in,
+	input[31:0] rd_decompression_length_in,
+	input[63:0] src_addr_in,
+	input[15:0] job_id_in,
+	
+	output[63:0] des_addr_out,
+	output[34:0] rd_compression_length_out,
+	output[31:0] rd_decompression_length_out,
+	output[63:0] src_addr_out,
+	output[15:0] job_id_out,
+	
+	input rd,
+	
+	output almost_full,
+	output valid_out
+);
+reg rdreq;
+reg valid_reg;
+wire empty;
+always@(*)begin
+	if((~empty) & (~valid_reg) | rd)begin
+		rdreq	<= 1'b1;
+	end else begin
+		rdreq	<= 1'b0;
+	end
+end
+
+always@(posedge clk)begin
+	if(~rst_n)begin
+		valid_reg <=1'b0;
+	end else if(empty==1'b0 & valid_reg==1'b0)begin
+		valid_reg <=1'b1;
+	end else if(rdreq)begin
+		valid_reg <= ~empty;
+	end
+end
+
+pending_fifo_ip pending_fifo_ip0 (
+  .clk(clk),                  // input wire clk
+  .srst(~rst_n),                // input wire srst
+  .din({des_addr_in, rd_compression_length_in, rd_decompression_length_in, src_addr_in, job_id_in}),                  // input wire [210 : 0] din
+  .wr_en(wr),              // input wire wr_en
+  .rd_en(empty?1'b0:rdreq),              // input wire rd_en
+  .dout({des_addr_out, rd_compression_length_out, rd_decompression_length_out, src_addr_out, job_id_out}),                // output wire [210 : 0] dout
+  .full(),                // output wire full
+  .empty(empty),              // output wire empty
+  .valid(),              // output wire valid
+  .prog_full(almost_full),      // output wire prog_full
+  .wr_rst_busy(),  // output wire wr_rst_busy
+  .rd_rst_busy()  // output wire rd_rst_busy
+);
+
+assign valid_out	= valid_reg;
+endmodule 
+
+module working_fifo(
+	input clk,
+	input rst_n,
+	
+	input wr,
+	
+	input[28:0] rd_length_in,
+	input[63:0] src_addr_in,
+	input[15:0] job_id_in,
+	output[1:0] count,
+	
+	output[28:0] rd_length_out,
+	output[63:0] src_addr_out,
+	output[15:0] job_id_out,
+	
+	input rd,
+	output valid_out
+);
+reg rdreq;
+reg valid_reg;
+wire empty;
+always@(*)begin
+	if((~empty) & (~valid_reg) | rd)begin
+		rdreq	<= 1'b1;
+	end else begin
+		rdreq	<= 1'b0;
+	end
+end
+
+always@(posedge clk)begin
+	if(~rst_n)begin
+		valid_reg <=1'b0;
+	end else if(empty==1'b0 & valid_reg==1'b0)begin
+		valid_reg <=1'b1;
+	end else if(rd)begin
+		valid_reg <= ~empty;
+	end
+end
+
+wire[3:0] data_count;
+
+working_fifo_ip your_instance_name (
+  .clk(clk),                  // input wire clk
+  .srst(~rst_n),                // input wire srst
+  .din({rd_length_in, src_addr_in, job_id_in}),                  // input wire [108 : 0] din
+  .wr_en(wr),              // input wire wr_en
+  .rd_en(rdreq),              // input wire rd_en
+  .dout({rd_length_out, src_addr_out, job_id_out}),                // output wire [108 : 0] dout
+  .full(),                // output wire full
+  .empty(empty),              // output wire empty
+  .data_count(data_count),    // output wire [3 : 0] data_count
+  .wr_rst_busy(),  // output wire wr_rst_busy
+  .rd_rst_busy()  // output wire rd_rst_busy
+);
+
+assign count = data_count[1:0] + valid_reg;
+assign valid_out	= valid_reg;
+endmodule 
+
+module rd_fifo(
+	input clk,
+	input rst_n,
+	
+	input wr,
+	input[15:0] job_id_in,
+	input almost_full,
+	
+	output[15:0] job_id_out,
+	input rd
+);
+
+reg rdreq;
+reg valid_reg;
+wire empty;
+always@(*)begin
+	if((~empty) & (~valid_reg) | rd)begin
+		rdreq	<= 1'b1;
+	end else begin
+		rdreq	<= 1'b0;
+	end
+end
+
+always@(posedge clk)begin
+	if(~rst_n)begin
+		valid_reg <=1'b0;
+	end else if(empty==1'b0 & valid_reg==1'b0)begin
+		valid_reg <=1'b1;
+	end else if(rd)begin
+		valid_reg <= ~empty;
+	end
+end
+
+rd_fifo_ip your_instance_name (
+  .clk(clk),                  // input wire clk
+  .srst(~rst_n),                // input wire srst
+  .din(job_id_in),                  // input wire [15 : 0] din
+  .wr_en(wr),              // input wire wr_en
+  .rd_en(rdreq),              // input wire rd_en
+  .dout(job_id_out),                // output wire [15 : 0] dout
+  .full(),                // output wire full
+  .empty(empty),              // output wire empty
+  .prog_full(almost_full),      // output wire prog_full
+  .wr_rst_busy(),  // output wire wr_rst_busy
+  .rd_rst_busy()  // output wire rd_rst_busy
+);
+//assign valid_out	= valid_reg;
+endmodule 

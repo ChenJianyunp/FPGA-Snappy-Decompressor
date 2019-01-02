@@ -19,6 +19,7 @@ module decompressor(
 	output data_fifo_almostfull,
 	
 	output done,
+	output idle,
 	output last,///whether it is the last 64B of a burst
 	output[511:0] data_out,
 	output[63:0] byte_valid_out,
@@ -507,8 +508,7 @@ control#
 	.page_finish(ct_page_finish)
 	
 );
-
-assign done=dout_page_out_finish;
+assign idle=dout_page_out_finish;
 assign data_out=dout_dout;
 
 endmodule 

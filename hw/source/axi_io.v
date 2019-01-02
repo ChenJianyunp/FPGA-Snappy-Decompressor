@@ -20,6 +20,8 @@ module axi_io
 	output done,
 	output idle,
 	
+	input job_valid,
+	input[15:0] job_id,
 	input[C_M_AXI_ADDR_WIDTH-1:0] src_addr,  //address to read from host memory
 	input[C_M_AXI_ADDR_WIDTH-1:0] des_addr, ///address to write result to host memory
 	input[31:0] compression_length,
@@ -31,6 +33,7 @@ module axi_io
     input dma_rd_req_ack,
     input[C_M_AXI_DATA_WIDTH-1:0] dma_rd_data,
     input dma_rd_data_valid,
+	input dma_rd_data_last,
     output dma_rd_data_taken,
 ///////// ports to write data to host memory
 	output dma_wr_req,
@@ -66,50 +69,45 @@ generate
 endgenerate
 /*******************/
 
-decompressor d0(
+
+io_control io_control0
+(
 	.clk(clk),
 	.rst_n(rst_n),
-	.data(dec_data_in),
-	.valid_in(dma_rd_data_valid),
-	.start(start),
-	.compression_length({3'b0,compression_length}),
-	.decompression_length(decompression_length),
-	.wr_ready(dma_wr_ready),
-
-	.data_fifo_almostfull(dec_almostfull),
 	
 	.done(done),
-	.last(dma_wr_data_last),
-	.data_out(dec_data_out),
-	.byte_valid_out(dec_byte_valid),
-	.valid_out(dma_wr_wvalid)
-);
-io_control io_control0(
-	.clk(clk),
-	.rst_n(rst_n),
+	.start(start),
+	.job_valid(job_valid),
+	.idle(idle),
 	
 	.src_addr(src_addr),
 	.rd_req(dma_rd_req),
 	.rd_req_ack(dma_rd_req_ack),
 	.rd_len(dma_rd_len),
-	.done(done),
-	.start(start),
-	.idle(idle),
 	.rd_address(dma_rd_addr),
+	.job_id(job_id),
 	
-	.wr_valid(dma_wr_wvalid),
-	.wr_ready(dma_wr_ready),
+
 	.des_addr(des_addr),
 	.wr_req(dma_wr_req),
 	.wr_req_ack(dma_wr_req_ack),
-	.wr_len(dma_wr_len),
 	.wr_address(dma_wr_addr),
 	.bready(dma_wr_bready),
 	
+	.data_out(dec_data_out),
+	.byte_valid_out(dec_byte_valid),
+	.wr_valid(dma_wr_wvalid),
+	.wr_ready(dma_wr_ready),
+	.wr_data_last(dma_wr_data_last),///whether it is the last 64B of a burst
+	
+	.data_in(dec_data_in),
+	.valid_in(dma_rd_data_valid),
+	.rd_last(dma_rd_data_last),
+	.data_ready(dec_almostfull), //whether decompressors are ready to receive data
 	.decompression_length(decompression_length),
 	.compression_length({3'b0,compression_length})
-
 );
+
 assign dma_rd_data_taken=~dec_almostfull;
 
 endmodule 

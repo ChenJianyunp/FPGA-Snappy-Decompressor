@@ -27,7 +27,7 @@ use ieee.STD_LOGIC_UNSIGNED.all;
 use ieee.numeric_std.all;
 
 
-entity action_example is
+entity action_decompressor is
     generic (
         -- Parameters of Axi Master Bus Interface AXI_CARD_MEM0 ; to DDR memory
         C_AXI_CARD_MEM0_ID_WIDTH     : integer   := 2;
@@ -134,9 +134,9 @@ entity action_example is
         axi_host_mem_ruser    : in std_logic_vector(C_AXI_HOST_MEM_RUSER_WIDTH-1 downto 0);
         axi_host_mem_wuser    : out std_logic_vector(C_AXI_HOST_MEM_WUSER_WIDTH-1 downto 0)
 );
-end action_example;
+end action_decompressor;
 
-architecture action_example of action_example is
+architecture action_decompressor of action_decompressor is
 
 
 
@@ -146,20 +146,21 @@ architecture action_example of action_example is
         signal fsm_app_q        : fsm_app_t;
         signal fsm_copy_q       : fsm_copy_t;
 
-        signal reg_0x20         : std_logic_vector(31 downto 0);
-        signal reg_0x30         : std_logic_vector(31 downto 0);
-        signal reg_0x34         : std_logic_vector(31 downto 0);
-        signal reg_0x38         : std_logic_vector(31 downto 0);
-        signal reg_0x3c         : std_logic_vector(31 downto 0);
-        signal reg_0x40         : std_logic_vector(31 downto 0);
-        signal reg_0x44         : std_logic_vector(31 downto 0);
-		signal reg_0x48         : std_logic_vector(31 downto 0);
-        signal app_start        : std_logic;
-        signal app_done         : std_logic;
-        signal app_ready        : std_logic;
-        signal app_idle         : std_logic;
-        signal counter          : std_logic_vector( 7 downto 0);
-        signal counter_q        : std_logic_vector(31 downto 0);
+        signal reg_0x20         	: std_logic_vector(31 downto 0);
+        signal src_addr_lower   	: std_logic_vector(31 downto 0);
+        signal src_addr_upper       : std_logic_vector(31 downto 0);
+        signal des_addr_lower       : std_logic_vector(31 downto 0);
+        signal des_addr_upper       : std_logic_vector(31 downto 0);
+        signal compression_length   : std_logic_vector(31 downto 0);
+		signal decompression_length : std_logic_vector(31 downto 0);
+		signal job_id				: std_logic_vector(15 downto 0);
+		signal job_valid        	: std_logic;
+        signal app_start        	: std_logic;
+        signal app_done         	: std_logic;
+        signal app_ready        	: std_logic;
+        signal app_idle         	: std_logic;
+        signal counter          	: std_logic_vector( 7 downto 0);
+        signal counter_q        	: std_logic_vector(31 downto 0);
 
 
         signal dma_rd_req        : std_logic;
@@ -168,6 +169,7 @@ architecture action_example of action_example is
         signal rd_len            : std_logic_vector(  7 downto 0);
         signal dma_rd_data       : std_logic_vector(511 downto 0);
         signal dma_rd_data_valid : std_logic;
+		signal dma_rd_data_last  : std_logic;
         signal dma_rd_data_taken : std_logic;
 
         signal dma_wr_req        : std_logic;
@@ -251,6 +253,8 @@ architecture action_example of action_example is
 			start:		in std_logic;
 			done:		out std_logic;
 			idle:		out std_logic;
+			job_id:		in std_logic_vector(15 downto 0);
+			job_valid:	in std_logic;
 			src_addr:	in std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
 			des_addr:	in std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
 			compression_length:	in std_logic_vector(31 downto 0);
@@ -262,6 +266,7 @@ architecture action_example of action_example is
 			dma_rd_req_ack:	in std_logic;
 			dma_rd_data:	in std_logic_vector(C_M_AXI_DATA_WIDTH-1 downto 0);
 			dma_rd_data_valid: in std_logic;
+			dma_rd_data_last: in std_logic;
 			dma_rd_data_taken: out std_logic;
 --ports to write data to host memory
 			dma_wr_req:		out std_logic;
@@ -293,23 +298,25 @@ action_axi_slave_inst : entity work.action_axi_slave
     port map (
         -- config reg ; bit 0 => disable dma and
         -- just count down the length regsiter
-        int_enable_o    => int_enable,
-        reg_0x10_i      => x"1014_0000",  -- action type
-        reg_0x14_i      => x"0000_0000",  -- action version
-        reg_0x20_o      => reg_0x20,
-        reg_0x30_o      => reg_0x30,
+        int_enable_o    		=> int_enable,
+        reg_0x10_i      		=> x"1014_0000",  -- action type
+        reg_0x14_i      		=> x"0000_0000",  -- action version
+        reg_0x20_o     			=> reg_0x20,
         -- low order source address
-        reg_0x34_o      => reg_0x34,
+        src_addr_lower  		=> src_addr_lower,
         -- high order source  address
-        reg_0x38_o      => reg_0x38,
+        src_addr_upper  		=> src_addr_upper,
         -- low order destination address
-        reg_0x3c_o      => reg_0x3c,
+        des_addr_lower      	=> des_addr_lower,
         -- high order destination address
-        reg_0x40_o      => reg_0x40,
+        des_addr_upper     		=> des_addr_upper,
         -- number of bytes to copy
-        reg_0x44_o      => reg_0x44,
+        compression_length      => compression_length,
 		-- number of bytes to write
-		reg_0x48_o      => reg_0x48,
+		decompression_length	=> decompression_length,
+		--id of this job
+		job_id_o				=> job_id,
+		job_valid_o				=> job_valid,
 		
         app_start_o     => app_start,
         app_done_i      => app_done,
@@ -360,6 +367,7 @@ action_dma_axi_master_inst : entity work.action_axi_master
         dma_rd_req_ack_o        => dma_rd_req_ack,
         dma_rd_data_o           => dma_rd_data,
         dma_rd_data_valid_o     => dma_rd_data_valid,
+		dma_rd_data_last_o		=> dma_rd_data_last,
         dma_rd_data_taken_i     => dma_rd_data_taken,
         dma_rd_context_id       => reg_0x20(C_AXI_HOST_MEM_ARUSER_WIDTH - 1 downto 0),
 
@@ -437,10 +445,12 @@ axi_io0: axi_io
 		done				=>app_done,
 		idle				=>app_idle,
 		
-		src_addr			=>(reg_0x38&reg_0x34),
-		des_addr			=>(reg_0x40&reg_0x3c),
-		compression_length	=>reg_0x44,
-		decompression_length=>reg_0x48,
+		src_addr			=>(src_addr_upper & src_addr_lower),
+		des_addr			=>(des_addr_upper & des_addr_lower),
+		compression_length	=>compression_length,
+		decompression_length=>decompression_length,
+		job_id				=>job_id,
+		job_valid			=>job_valid,
 --ports to read data from host memory
 		dma_rd_req			=>dma_rd_req,
 		dma_rd_addr			=>rd_addr,
@@ -448,6 +458,7 @@ axi_io0: axi_io
 		dma_rd_req_ack		=>dma_rd_req_ack,
 		dma_rd_data			=>dma_rd_data,
 		dma_rd_data_valid	=>dma_rd_data_valid,
+		dma_rd_data_last	=>dma_rd_data_last,
 		dma_rd_data_taken	=>dma_rd_data_taken,
 --ports to write data to host memory
 		dma_wr_req			=>dma_wr_req,
@@ -466,4 +477,4 @@ axi_io0: axi_io
 
 
 
-end action_example;
+end action_decompressor;

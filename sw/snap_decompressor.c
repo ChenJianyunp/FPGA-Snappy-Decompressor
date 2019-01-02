@@ -69,6 +69,15 @@ static	int verbose_level = 0;
 
 int get_decompression_length(uint8_t *);
 
+typedef struct
+{
+    void *dest;
+	void *src;
+	size_t rd_size;
+	size_t wr_size;
+	int job_id; 
+} job_description;
+
 static uint64_t get_usec(void)
 {
         struct timeval t;
@@ -123,24 +132,22 @@ static int action_wait_idle(struct snap_card* h, int timeout, uint64_t *elapsed)
 
 
 static void action_decompress(struct snap_card* h,
-		int action,  /* Action can be 2,3,4,5,6  see ACTION_CONFIG_COPY_ */
-		void *dest,
-		const void *src,
-		size_t rd_size,
-		size_t wr_size)
+		job_description jd)
 {
 	uint64_t addr;
 
-	VERBOSE1(" memcpy(%p, %p, 0x%8.8lx,0x%8.8lx) ", dest, src, rd_size,wr_size);
-	action_write(h, ACTION_CONFIG,  action);
-	addr = (uint64_t)dest;
+	VERBOSE1(" memcpy(%p, %p, 0x%8.8lx,0x%8.8lx) ", jd.dest, jd.src, jd.rd_size, jd.wr_size);
+	addr = (uint64_t)jd.dest;
 	action_write(h, ACTION_DEST_LOW, (uint32_t)(addr & 0xffffffff));
 	action_write(h, ACTION_DEST_HIGH, (uint32_t)(addr >> 32));
-	addr = (uint64_t)src;
+	addr = (uint64_t)jd.src;
 	action_write(h, ACTION_SRC_LOW, (uint32_t)(addr & 0xffffffff));
 	action_write(h, ACTION_SRC_HIGH, (uint32_t)(addr >> 32));
-	action_write(h, ACTION_RD_SIZE, rd_size);
-	action_write(h, ACTION_WR_SIZE, wr_size);
+	action_write(h, ACTION_RD_SIZE, jd.rd_size);
+	action_write(h, ACTION_WR_SIZE, jd.wr_size);
+	
+	action_write(h, ACTION_JOB_ID, jd.job_id | (1<<16));
+	action_write(h, ACTION_JOB_ID, 0);
 	
 	return;
 }
@@ -151,10 +158,9 @@ static int do_decompression(struct snap_card *h,
 			snap_action_flag_t flags,
 			int action,
 			int timeout,
-			void *dest,
-			void *src,
-			unsigned long rd_size,
-			unsigned long wr_size)
+			job_description[] jd_array, //array to store the jobs
+			int num_job //number of jobs in the jd_array
+			)
 
 {
 	int rc;
@@ -168,7 +174,12 @@ static int do_decompression(struct snap_card *h,
 		VERBOSE0("       Try to run snap_main tool\n");
 		return 0x100;
 	}
-	action_decompress(h, action, dest, src, rd_size,wr_size);
+	
+	//send all the job descriptions to the card 
+	int i;
+	for(i = 0; i < num_job ; i++)
+		action_decompress(h, action, jd_array[i]);
+	
 	rc = action_wait_idle(h, timeout, &td);
 //	print_time(td, memsize);
 	if (0 != snap_detach_action(act)) {
@@ -206,6 +217,58 @@ int get_decompression_length(uint8_t * src){
 		return length;
 }
 
+static job_description generate_job(char *file, int job_id){
+		int rc;
+	void *src = NULL;
+	void *dest = NULL;
+	job_description jd;
+	
+	/*prepare read data and write space*/
+	
+	uint8_t *ibuff = NULL, *obuff = NULL;
+	ssize_t input_size = 0;
+	size_t output_size = 1*64*1024;
+	input_size = __file_size(file);
+	printf("size of the input is %d \n",(int)input_size);
+	ibuff = snap_malloc(input_size);
+	if (ibuff == NULL){
+		printf("ibuff null");
+		return 1;
+	}
+	
+	rc = __file_read(file, ibuff, input_size);
+	output_size=get_decompression_length(ibuff); ///calculate the length of the output
+	printf("length is %d \n",(int)output_size);
+	
+/*At the end of decompression, there maybe some garbage with the size of less than 64 bytes.
+inorder to save the hardware resource, the garbage will also be transfered back, so in the 
+software side, always allocate a more memory for writing back. */
+	obuff = snap_malloc(output_size+128);
+	if (obuff == NULL){
+		printf("obuff null");
+		return 1;
+	}
+	memset(obuff, 0x0, output_size+128);
+	
+	if (rc < 0){
+		printf("rc null");
+		return 1;
+	}
+	src = (void *)ibuff;
+	dest = (void *)obuff;
+	
+	jd.dest = dest;
+	jd.src = src;
+	jd.rd_size = input_size;
+	jd.wr_size = output_size;
+	jd.job_id = job_id & 0xFFFF; 
+	
+}
+
+static void free_job(job_description jd){
+	free_mem(jd.dest);
+	free_mem(jd.src);	
+}
 
 static int decompression_test(struct snap_card* dnc,
 			snap_action_flag_t attach_flags,
@@ -214,58 +277,33 @@ static int decompression_test(struct snap_card* dnc,
 			)    
 {
 	int rc;
-	void *src = NULL;
-	void *dest = NULL;
-	
-	/*prepare read data and write space*/
-	
-	uint8_t *ibuff = NULL, *obuff = NULL;
-//	uint64_t addr_out = 0x0ull;
-//	uint64_t addr_in = 0x0ull;
-	ssize_t size = 0;
-	size_t set_size = 1*64*1024;
-	const char *input = "/home/jianyuchen/bulk/snap15/testdata/urls.10K.snp";
-	size = __file_size(input);
-	printf("size of the input is %d \n",(int)size);
-	ibuff = snap_malloc(size);
-	if (ibuff == NULL){
-		printf("ibuff null");
-		return 1;
-	}
-	
-	rc = __file_read(input, ibuff, size);
-	set_size=get_decompression_length(ibuff); ///calculate the length of the output
-	printf("length is %d \n",(int)set_size);
-	
-/*At the end of decompression, there maybe some garbage with the size of less than 64 bytes.
-inorder to save the hardware resource, the garbage will also be transfered back, so in the 
-software side, always allocate a more memory for writing back. */
-	obuff = snap_malloc(set_size+128);
-	if (obuff == NULL){
-		printf("obuff null");
-		return 1;
-	}
-	memset(obuff, 0x0, set_size+128);
-	
-	if (rc < 0){
-		printf("rc null");
-		return 1;
-	}
-	src = (void *)ibuff;
-	dest = (void *)obuff;
 
-	rc = do_decompression(dnc, attach_flags, action, timeout, dest, src, size,set_size);
+	job_description jd[3];
+
+	jd[0] = generate_job("/home/jianyuchen/bulk/snap17/testdata/alice32k.snp", 0);
+	jd[1] = generate_job("/home/jianyuchen/bulk/snap17/testdata/alice32k.snp", 1);
+	jd[2] = generate_job("/home/jianyuchen/bulk/snap17/testdata/alice32k.snp", 2);
+	
+	rc = do_decompression(dnc, attach_flags, action, timeout, jd, 3);
 	if (0 == rc) {
 		printf("decompression finished");
 	}
 	/******output the decompression result******/
-	FILE * pFile;
-	pFile=fopen("/home/jianyuchen/bulk/snap14/testdata/test.txt","wb");
-	fwrite((void*)obuff,sizeof(char),set_size,pFile);
+	FILE * pFile0;
+	pFile0=fopen("/home/jianyuchen/bulk/snap17/testdata/test0.txt","wb");
+	fwrite((void*)jd[0].obuff,sizeof(char),jd[0].wr_size,pFile0);
 	
+	FILE * pFile1;
+	pFile1=fopen("/home/jianyuchen/bulk/snap17/testdata/test1.txt","wb");
+	fwrite((void*)jd[1].obuff,sizeof(char),jd[1].wr_size,pFile1);
 	
-	free_mem(ibuff);
-	free_mem(obuff);
+	FILE * pFile2;
+	pFile2=fopen("/home/jianyuchen/bulk/snap17/testdata/test2.txt","wb");
+	fwrite((void*)jd[2].obuff,sizeof(char),jd[2].wr_size,pFile2);
+	
+	free_job(jd[0]);
+	free_job(jd[1]);
+	free_job(jd[2]);
 	
 	return 0;
 }
