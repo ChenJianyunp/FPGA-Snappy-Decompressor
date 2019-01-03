@@ -542,7 +542,7 @@ generate
 endgenerate 
 
 
-always@(posedge clk)begin
+always@(*)begin
 	of_data_in		<= of_data_in_w;
 	of_last_in		<= dec_last_out[wr_select];
 	of_valid_in		<= dec_valid_out[wr_select] & (dec_valid_flag!=0);
@@ -566,7 +566,7 @@ output_fifo_ip output_fifo0 (
   .s_axis_tvalid(of_valid_in),  // input wire s_axis_tvalid
   .s_axis_tready(of_almost_full_w),  // output wire s_axis_tready
   .s_axis_tdata(of_data_in),    // input wire [511 : 0] s_axis_tdata
-  .s_axis_tlast(dec_last_out[wr_select]),    // input wire s_axis_tlast
+  .s_axis_tlast(of_last_in),    // input wire s_axis_tlast
   
   .m_axis_tvalid(wr_valid),  // output wire m_axis_tvalid
   .m_axis_tready(wr_ready),  // input wire m_axis_tready
@@ -576,51 +576,64 @@ output_fifo_ip output_fifo0 (
 
 reg idle_r;
 reg bready_r;
-always@(posedge clk)begin
-	if(~rst_n)begin
-		idle_r<=1'b1;
-	end	else if(start)begin
-		idle_r<=1'b0;
-	end else if((~decompressors_idle) == 0)begin
-		idle_r<=1'b1;		
-	end
-	
+reg done_r;
+reg[6:0] done_buff;
+reg pend_empty_buff,work_empty_buff, of_empty_buff;
+reg[NUM_DECOMPRESSOR-1:0] decompressors_idle_buff;
+wire[NUM_DECOMPRESSOR-1:0] decompressors_idle_buff_inverse;
+always@(posedge clk)begin	
 	if(~rst_n)begin
 		bready_r<=1'b0;
 	end else begin
 		bready_r<=~pend_almost_full;
 	end
 end
+assign decompressors_idle_buff_inverse = ~decompressors_idle_buff;
 
-reg done_r;
-reg[6:0] done_buff;
-reg pend_empty_buff,work_empty_buff, of_empty_buff;
-reg[NUM_DECOMPRESSOR-1:0] decompressors_idle_buff;
+
+
 always@(posedge clk)begin
 	//buffer some signal to check the finish of all the jobs
 	pend_empty_buff 		<= pend_empty;
 	work_empty_buff 		<= work_empty;
-	of_empty_buff			<= wr_valid;
+	of_empty_buff			<= ~wr_valid;
 	decompressors_idle_buff	<=decompressors_idle_w;
 	
 	if(~rst_n)begin
 		done_buff <= 0;
 	end else begin
-		if(pend_empty_buff & work_empty_buff & of_empty_buff & ((~decompressors_idle_buff) == 0) )begin
+		if(pend_empty_buff & work_empty_buff & of_empty_buff & (decompressors_idle_buff_inverse == 0) )begin
 			done_buff[0] <= 1'b1;
 		end else begin
 			done_buff[0] <= 1'b0;
 		end
 		done_buff[6:1] <= done_buff[5:0];
 	end
-	
+end
 
+reg[1:0] action_state;
+always@(posedge clk)begin
 	if(~rst_n)begin
+		action_state <= 2'd0;
 		done_r	<= 1'b0;
-	end else if(start) begin
-		done_r	<= 1'b0;
-	end else if(done_buff[6:1]==6'b11_1111)begin
-		done_r	<= 1'b1;
+		idle_r	<= 1'b1;
+	end else begin
+		case(action_state)
+		2'd0:begin
+			if(start)begin
+				action_state	<= 2'd1;
+				done_r			<= 1'b0;
+				idle_r			<= 1'b0;				
+			end
+		end
+		2'd1:begin
+			if(done_buff[6:1]==6'b11_1111)begin
+				done_r			<= 1'b1;
+				idle_r			<= 1'b1;
+				action_state 	<= 2'd0;
+			end
+		end
+		endcase
 	end
 end
 
