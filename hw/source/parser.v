@@ -24,7 +24,7 @@ module parser#(
 	
 	input valid_in,
 	input block_out_finish,  
-	input page_finish,
+	input job_decompressed,
 	
 	output block_finish,
 	///for literal content 
@@ -170,7 +170,7 @@ always@(posedge clk)begin
 		if(lza_a==1'b0)begin empty_flag<=1'b1; end
 		else begin empty_flag<=1'b0; end
 		
-		if(page_finish)begin
+		if(job_decompressed)begin
 			state	<=3'd0;
 		end else if((~start_lit_buff)&((data_buff[137:136]==2'b01 & copy_sep_2b) | (data_buff[137:136]==2'b10 & copy_sep_3b)))begin
 			state			<=3'd4;
@@ -331,7 +331,7 @@ always@(posedge clk)begin
 	end
 	
 	3'd3:begin  ///if the overflow of address happens, it will first go to this state
-		if(page_finish)begin
+		if(job_decompressed)begin
 		//if this file is finished and the BRAMs are cleaned, go back to the initial state
 			state	<=3'd0;
 		end else 

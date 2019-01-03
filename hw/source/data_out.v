@@ -19,12 +19,13 @@ module data_out(
 	input[1023:0] lit_in,
 	input[143:0] lit_address,
 	input[127:0] lit_valid,
-	input page_finish,  ///if all the page has already processed 
+	input job_decompressed,  ///if all the page has already processed 
+	output job_outputed, //whether all the data in the job has outputed
 	/////
 	output block_out_finish,  ///all data in block has outputed
-	output page_out_finish,
 	output cl_finish,   ///all data are cleaned
 	output last,  ///whether it is the last 64B of a burst
+
 	output[511:0] data_o,
 	output[63:0] byte_valid_o,
 	output valid_o
@@ -43,6 +44,7 @@ reg[25:0] rd_address; //[25:10]:block count [9:1] the address of ram from 0 to 5
 //reg[15:0] block_cnt; ///cnt the number of the block
 reg[2:0] state;
 reg rd_valid;
+reg job_outputed_r; //whether all the data in the job is outputed 
 reg wr_flag;
 reg final_valid;
 reg cl_finish_flag;
@@ -69,7 +71,8 @@ logic easy, i have "valid_inverse" register, this register is inversed after eve
 before writing to BRAM and after reading from BRAM*/
 always@(posedge clk)begin
 	if(~rst_n)begin
-		state<=3'd0;
+		state			<=3'd0;
+		job_outputed_r	<=1'b0;
 	end
 	case(state)
 	3'd0:begin  ///idle state
@@ -79,13 +82,13 @@ always@(posedge clk)begin
 		end else begin
 			rd_valid	<=1'b0;
 		end
-		
-		wr_flag		<=1'b0;
-		final_valid	<=1'b0;
-		page_out_finish_r<=1'b0;
-		cl_finish_flag<=1'b0;
-		rd_address	<=26'b0;
-		block_out_finish_r<=1'b0;
+		job_outputed_r	<= 1'b0;
+		wr_flag			<= 1'b0;
+		final_valid		<= 1'b0;
+		page_out_finish_r<= 1'b0;
+		cl_finish_flag	<= 1'b0;
+		rd_address		<= 26'b0;
+		block_out_finish_r<= 1'b0;
 	end
 	3'd1:begin  //read
 		block_out_finish_r<=1'b0;
@@ -93,7 +96,7 @@ always@(posedge clk)begin
 		rd_valid	<=1'b1;
 		if((rd_address[9:0]==10'd1022) & valid_lower & ready)begin
 			state<=3'd2;
-		end else if((rd_address==max_address) & page_finish & ready)begin //whether output all the data in page
+		end else if((rd_address==max_address) & job_decompressed & ready)begin //whether output all the data in page
 			state<=3'd3;
 			final_valid	<=1'b1;			
 		end
@@ -113,13 +116,15 @@ always@(posedge clk)begin
 			wr_flag		<=1'b1;
 			final_valid	<=1'b0;
 			rd_valid	<=1'b0;
+			job_outputed_r<= 1'b1;
 		end
 		wr_address	<=3'd0;
 	end
 	3'd4:begin  ////clean all the valid bit in BRAM
-		wr_address	<=wr_address+9'd1;
-		valid_inverse	<=1'b0;
-		rd_valid	<=1'b0;
+		job_outputed_r	<= 1'b0;
+		wr_address		<= wr_address+9'd1;
+		valid_inverse	<= 1'b0;
+		rd_valid		<= 1'b0;
 		if(wr_address==9'd511)begin
 			state		<=3'd0;
 			page_out_finish_r<=1'b1;
@@ -241,11 +246,11 @@ end
 assign valid_w	=valid_w2^{128{valid_inverse}};
 assign block_out_finish=block_out_finish_buff_r2;
 
-assign page_out_finish=page_out_finish_buff_r;
-assign cl_finish=cl_finish_flag;
-assign data_o		=rd_address[0]?data_upper:data_lower;
-assign byte_valid_o	=(~64'b0);
-assign valid_o		=((rd_address[0]?valid_upper:valid_lower)&rd_valid)| final_valid;
-assign last			=valid_o & (final_valid |last_r);
+assign job_outputed = job_outputed_r;
+assign cl_finish	= cl_finish_flag;
+assign data_o		= rd_address[0]?data_upper:data_lower;
+assign byte_valid_o	= (~64'b0);
+assign valid_o		= ((rd_address[0]?valid_upper:valid_lower)&rd_valid)| final_valid;
+assign last			= valid_o & (final_valid |last_r);
 
 endmodule

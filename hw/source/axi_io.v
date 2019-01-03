@@ -50,7 +50,6 @@ module axi_io
 	
 	
 );
-wire dec_almostfull;
 
 /********************
 reorder the input and output data
@@ -91,6 +90,7 @@ io_control io_control0
 	.des_addr(des_addr),
 	.wr_req(dma_wr_req),
 	.wr_req_ack(dma_wr_req_ack),
+	.wr_len(dma_wr_len),
 	.wr_address(dma_wr_addr),
 	.bready(dma_wr_bready),
 	
@@ -103,11 +103,10 @@ io_control io_control0
 	.data_in(dec_data_in),
 	.valid_in(dma_rd_data_valid),
 	.rd_last(dma_rd_data_last),
-	.data_ready(dec_almostfull), //whether decompressors are ready to receive data
+	.data_taken(dma_rd_data_taken), //whether decompressors are ready to receive data
 	.decompression_length(decompression_length),
 	.compression_length(compression_length)
 );
 
-assign dma_rd_data_taken=~dec_almostfull;
 
 endmodule 

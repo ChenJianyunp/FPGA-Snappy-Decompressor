@@ -18,6 +18,7 @@ module decompressor(
 
 	output data_fifo_almostfull,
 	
+	output block_out, //give a high pulse if the 64B block is outputed
 	output done,
 	output idle,
 	output last,///whether it is the last 64B of a burst
@@ -31,7 +32,7 @@ parameter 	NUM_PARSER=6,  //number of Parser (2nd level parser)
 			PARSER_MASK=6'b111111; //if set to 0, the corresponding parser will be disabled, for test only
 wire[1023:0] data_w;
 
-wire ct_page_finish;
+wire ct_job_decompressed; //whether all the data in the job has descompressed(may not outputed)
 wire dout_block_out_finish;
 ////////
 wire df_valid,df_empty;
@@ -201,7 +202,7 @@ generate
 	
 			.valid_in(dis_validout[NUM_PARSER-1-ps_i]),
 			.block_out_finish(dout_block_out_finish),  ///when 
-			.page_finish(ct_page_finish),
+			.job_decompressed(ct_job_decompressed),
 	
 			.block_finish(ps_block_finish[ps_i]),
 			///for literal content 
@@ -285,10 +286,9 @@ wire[15:0] dout_valid_wr_in;
 wire[1023:0] dout_lit_in;
 wire[143:0] dout_lit_address;
 wire[127:0] dout_lit_valid;
-
 wire[511:0] dout_dout;
 wire dout_cl_finish;
-wire dout_page_out_finish;
+wire dout_job_outputed;
 data_out data_out0(
 	.clk(clk),
 	.rst_n(rst_n),
@@ -301,10 +301,10 @@ data_out data_out0(
 	.lit_in(dout_lit_in),
 	.lit_address(dout_lit_address),
 	.lit_valid(dout_lit_valid),
-	.page_finish(ct_page_finish),
+	.job_decompressed(ct_job_decompressed),
+	.job_outputed(dout_job_outputed),
 	
 	.block_out_finish(dout_block_out_finish),
-	.page_out_finish(dout_page_out_finish),
 	.cl_finish(dout_cl_finish),  ///if the clean is finished
 	.last(last),
 	.data_o(dout_dout),
@@ -489,7 +489,7 @@ endgenerate
 /************************************************
 control module
 *********************************************/
-
+wire ct_idle;
 control#
 (
 	.NUM_PARSER(6)
@@ -497,6 +497,7 @@ control#
 (
 	.clk(clk),
 	.rst_n(rst_n),
+	.start(start),
 	
 	.tf_empty(qt_isempty), //token fifo
 	.ps_finish(ps_block_finish),
@@ -504,11 +505,12 @@ control#
 	.ps_empty(ps_empty), //parser  
 	.ram_empty(ram_empty),
 
+	.idle(ct_idle), 
 	.cl_finish(dout_cl_finish),
-	.page_finish(ct_page_finish)
-	
+	.job_decompressed(ct_job_decompressed)
 );
-assign idle=dout_page_out_finish;
-assign data_out=dout_dout;
+assign block_out	= dout_block_out_finish | dout_job_outputed;  //output a complete 64KB block or the last block
+assign idle			= ct_idle;
+assign data_out		= dout_dout;
 
 endmodule 

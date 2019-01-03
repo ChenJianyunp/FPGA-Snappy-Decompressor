@@ -78,15 +78,15 @@ module working_fifo(
 	output[25:0] rd_length_out,
 	output[63:0] src_addr_out,
 	output[15:0] job_id_out,
+	output empty,
 	
 	input rd,
 	output valid_out
 );
 reg rdreq;
 reg valid_reg;
-wire empty;
 always@(*)begin
-	if((~empty) & (~valid_reg) | rd)begin
+	if((~empty) & ((~valid_reg) | rd))begin
 		rdreq	<= 1'b1;
 	end else begin
 		rdreq	<= 1'b0;
@@ -139,7 +139,7 @@ reg rdreq;
 reg valid_reg;
 wire empty;
 always@(*)begin
-	if((~empty) & (~valid_reg) | rd)begin
+	if((~empty) & ((~valid_reg) | rd))begin
 		rdreq	<= 1'b1;
 	end else begin
 		rdreq	<= 1'b0;

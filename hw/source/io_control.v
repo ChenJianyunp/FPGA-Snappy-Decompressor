@@ -47,7 +47,7 @@ module io_control
 	input[511:0] data_in,
 	input valid_in,
 	input rd_last,
-	output data_ready, //whether decompressors are ready to receive data
+	output data_taken, //whether decompressors are ready to receive data
 	input[31:0] decompression_length,
 	input[31:0] compression_length
 );
@@ -66,10 +66,11 @@ reg pend_rd;
 wire pend_almost_full;
 //wires for the FSM of reading
 reg[31:6] compression_length_r;   ///[31:12]:number of 4k blocks  [11:6]:number of 64B [5:0]:fraction
-reg[63:0] rd_address_r;
+reg[63:0] rd_address_r, rd_address_wb;
 reg[15:0] rd_job_id;
 reg[7:0] rd_len_r;
 reg rd_req_r;
+reg rd_ack;
 reg[2:0] rd_state;
 reg push_back_flag;
 //wires for rd_fifo
@@ -77,14 +78,14 @@ wire[15:0] rd_fifo_job_id_out;
 wire rd_fifo_almost_full;
 //wires for the decompressors
 reg[NUM_DECOMPRESSOR-1:0] decompressors_idle, decompressors_done;
-wire[NUM_DECOMPRESSOR-1:0] decompressors_idle_w, decompressors_done_w;
+wire[NUM_DECOMPRESSOR-1:0] decompressors_idle_w, decompressors_done_w, decompressors_block_out_w;
 wire[NUM_DECOMPRESSOR-1:0] dec_valid_out, dec_last_out, dec_almostfull;
 wire[NUM_DECOMPRESSOR * 64 -1:0] dec_des_address_w;
 wire[NUM_DECOMPRESSOR * 32 -1:0] dec_decompression_length_w;
 wire[NUM_DECOMPRESSOR * 512 -1:0] dec_data_out_w;
 
 ///buffer the input data and output signal of decompressors 
-reg data_ready_r;
+reg data_taken_r;
 reg rd_last_buff;
 reg valid_in_buff;
 reg[511:0] data_in_buff;
@@ -98,27 +99,27 @@ wire of_almost_full_w;
 always@(posedge clk)begin
 	///input 
 	if(dec_almostfull == 0)begin
-		data_ready_r	<= 1'b1;
+		data_taken_r	<= 1'b1;
 	end else begin 		//if one of the decompressor is almost full, stop the input
-		data_ready_r	<= 1'b0;
+		data_taken_r	<= 1'b0;
 	end
 	
 	data_in_buff	<= data_in;
-	rd_last_buff	<= data_ready_r & data_ready_r;
-	valid_in_buff	<= valid_in & data_ready_r;
+	rd_last_buff	<= rd_last & data_taken_r;
+	valid_in_buff	<= valid_in & data_taken_r;
 	
 	///output
 	decompressors_idle <= decompressors_idle_w;
 end
 
-
+wire[207:0] pend_din, pend_dout;
 pending_fifo_ip pending_fifo_ip0 (
   .clk(clk),                  // input wire clk
   .srst(~rst_n),                // input wire srst
-  .din({des_addr, compression_length, decompression_length, src_addr, job_id}),                  // input wire [210 : 0] din
+  .din(pend_din),                  // input wire [210 : 0] din
   .wr_en(job_valid),              // input wire wr_en
   .rd_en(pend_rd),              // input wire rd_en
-  .dout({pend_des_addr_w, pend_rd_compression_length_w, pend_rd_decompression_length_w, pend_src_addr_w, pend_job_id_w}),                // output wire [210 : 0] dout
+  .dout(pend_dout),                // output wire [210 : 0] dout
   .full(),                // output wire full
   .empty(pend_empty),              // output wire empty
   .valid(),              // output wire valid
@@ -126,7 +127,12 @@ pending_fifo_ip pending_fifo_ip0 (
   .wr_rst_busy(),  // output wire wr_rst_busy
   .rd_rst_busy()  // output wire rd_rst_busy
 );
-
+assign pend_din 						= {des_addr, compression_length, decompression_length, src_addr, job_id};
+assign pend_job_id_w 					= pend_dout[15:0];
+assign pend_src_addr_w 					= pend_dout[79:16];
+assign pend_rd_decompression_length_w 	= pend_dout[111:80];
+assign pend_rd_compression_length_w 	= pend_dout[143:112];
+assign pend_des_addr_w 					= pend_dout[207:144];
 /****************solved the read data*************/
 localparam RD_START = 3'd0, RD_CHECK = 3'd1, RD_PROCESS = 3'd2, RD_PUSH_BACK = 3'd3, RD_WAIT = 3'd4;
  
@@ -141,6 +147,7 @@ wire[NUM_DECOMPRESSOR_LOG-1:0] work_count;
 wire work_valid;
 reg working_add;	//whether a new job can be added to working fifo
 reg work_wr_valid;
+wire work_empty;
 always@(*)begin
 /*the input of working fifo comes from FSM (write back unsolved job),
 or the pending FIFO, the input from FSM should get priority*/
@@ -154,28 +161,30 @@ or the pending FIFO, the input from FSM should get priority*/
 	end
 	
 	if(push_back_flag)begin
-		work_src_addr	<= rd_address_r;
-		work_rd_length	<= compression_length_r;
-		work_job_id		<= rd_job_id;
+		work_src_addr			<= rd_address_wb;
+		work_rd_length[31:6]	<= compression_length_r[31:6];
+		work_job_id				<= rd_job_id;
 	end else begin
-		work_src_addr	<= pend_src_addr;
-		work_rd_length	<= pend_rd_compression_length;
-		work_job_id		<= pend_job_id;
+		work_src_addr			<= pend_src_addr;
+		work_rd_length[31:6]	<= pend_rd_compression_length[31:6];
+		work_job_id				<= pend_job_id;
 	end
 end
 
 reg[2:0] pd_rd_state; //FSM to add new job to working fifo
-
+reg dm_job_valid;
 always@(posedge clk)begin
 	if(~rst_n)begin
 		pd_rd_state	<= 3'd0;
 		pend_rd		<= 1'b0;
 		working_add	<= 1'b0;
+		dm_job_valid<= 1'b0;
 	end else case(pd_rd_state)
 		3'd0:begin
 			if(start)begin pd_rd_state <= 3'd1; end
 			pend_rd		<= 1'b0;
 			working_add	<= 1'b0;
+			dm_job_valid<= 1'b0;
 		end
 		
 		3'd1:begin  //wait until pending fifo is not empty
@@ -183,11 +192,13 @@ always@(posedge clk)begin
 				pend_rd		<= 1'b1;
 				pd_rd_state <= 3'd2;
 			end
+			dm_job_valid	<= 1'b0;
 		end
 		
 		3'd2:begin //there is output register on pending fifo
 			pend_rd		<= 1'b0;
 			pd_rd_state <= 3'd3;
+			dm_job_valid<= 1'b0;
 		end
 		
 		3'd3:begin //read data
@@ -205,6 +216,7 @@ always@(posedge clk)begin
 			pend_src_addr	<= pend_src_addr_w;
 			pend_des_addr	<= pend_des_addr_w;
 			pend_job_id		<= pend_job_id_w;
+			dm_job_valid	<= 1'b0;
 			pd_rd_state 	<= 3'd4;
 		end
 		
@@ -213,12 +225,14 @@ always@(posedge clk)begin
 				pd_rd_state <= 3'd5;
 				working_add	<= 1'b1;
 			end
+			dm_job_valid	<= 1'b0;
 		end
 		
 		3'd5:begin
 			if(~push_back_flag)begin//if no job is pushed back, this new job has added
-				working_add	<= 1'b0;
-				pd_rd_state <= 3'd1;
+				working_add		<= 1'b0;
+				pd_rd_state 	<= 3'd1;
+				dm_job_valid	<= 1'b1;
 			end
 		end
 		
@@ -232,16 +246,17 @@ working_fifo working_fifo0(
 	
 	.wr(work_wr_valid),
 	
-	.rd_length_in(work_rd_length),
+	.rd_length_in(work_rd_length[31:6]),
 	.src_addr_in(work_src_addr),
 	.job_id_in(work_job_id),
 	.count(work_count),
 	
-	.rd_length_out(work_rd_length_out),
+	.rd_length_out(work_rd_length_out[31:6]),
 	.src_addr_out(work_src_addr_out),
 	.job_id_out(work_job_id_out),
+	.empty(work_empty),
 	
-	.rd(rd_req_r),
+	.rd(rd_ack),
 	
 	.valid_out(work_valid)
 );
@@ -250,12 +265,15 @@ working_fifo working_fifo0(
 always@(posedge clk)begin
 	if(~rst_n)begin
 		rd_req_r	<= 1'b0;
+		rd_ack		<= 1'b0;
 		rd_state	<= RD_START;
 	end else case(rd_state)
 	RD_START:begin
 		if(start)begin
 			rd_state	<= RD_CHECK;
 		end
+		rd_req_r		<= 1'b0;
+		rd_ack			<= 1'b0;
 		push_back_flag	<= 1'b0;
 	end
 	
@@ -274,17 +292,20 @@ always@(posedge clk)begin
 		if(work_valid)begin //once there is job in the working_fifo, go to the next step to read
 			rd_state	<= RD_PROCESS;
 			rd_req_r	<= 1'b1;
+			rd_ack		<= 1'b1;
 		end
 		
 		rd_job_id		<= work_job_id_out;
-		rd_address_r	<= work_src_addr_out + 64'd4096;
+		rd_address_r	<= work_src_addr_out;
+		rd_address_wb	<= work_src_addr_out + 64'd4096;
 	end
 	
 	RD_PROCESS:begin
-		push_back_flag				<= 1'b0;
+		push_back_flag	<= 1'b0;
+		rd_ack			<= 1'b0;
 		if(rd_req_ack)begin
-			rd_req_r	<= 1'b0;
 			//once the rd_fifo is almost full, stop sending command, wait until it is not full
+			rd_req_r	<= 1'b0;
 			if(rd_fifo_almost_full)begin
 				rd_state	<= RD_WAIT;
 			end else begin
@@ -309,7 +330,7 @@ rd_fifo rd_fifo0(
 	.clk(clk),
 	.rst_n(rst_n),
 	
-	.wr(rd_req_r & rd_req_ack),
+	.wr(rd_ack),
 	.job_id_in(rd_job_id),
 	.almost_full(rd_fifo_almost_full),
 	
@@ -337,10 +358,10 @@ reg[NUM_DECOMPRESSOR-1:0] dec_valid_flag; //select a decompressor to output
 and change to next decompressor*/
 always@(posedge clk)begin
 	if(~rst_n)begin
-		wr_state	<= WR_START;
-		wr_req_r	<= 1'b0;
-		wr_select	<= 0;
-		wr_write_back<= 0;
+		wr_state		<= WR_START;
+		wr_req_r		<= 1'b0;
+		wr_select		<= 0;
+		wr_write_back	<= 0;
 		dec_valid_flag	<= 0;
 	end else case(wr_state)
 	WR_START:begin
@@ -363,8 +384,9 @@ always@(posedge clk)begin
 			end
 		end
 		dec_valid_flag	<= 0;
-		wr_req_r	<= 1'b0;
-		wr_write_back <= 0;
+		wr_req_r		<= 1'b0;
+		wr_write_back 	<= 0;
+
 		//assign the data of corresponding decompressor to the registers of this FSM
 		decompression_length_r[31:6]	<= decompression_length_select[31:6];
 		wr_address_r[63:0]				<= wr_address_w;
@@ -383,11 +405,18 @@ always@(posedge clk)begin
 		wr_state					<= WR_WRITE_ADDRESS;
 		wr_req_r					<= 1'b1; //start to write address
 		dec_valid_flag				<= (1 << wr_select);
+		
+		if(decompression_length_r[12:6] <= 26'd64)begin
+			wr_len_r		<= {1'b0, decompression_length_r[12:6] - 1};
+		end else begin
+			wr_len_r		<= 8'b11_1111;
+		end
+		
 	end
-	
+				
 	WR_WRITE_ADDRESS:begin
-		if(wr_length_64B == 10'd1)begin //the last
-			if(dec_valid_out[wr_select] & wr_req_ack)begin
+		if(wr_length_64B <= 10'd64)begin //the last
+			if(wr_req_ack)begin
 				wr_req_r	<= 1'b0;
 				wr_state	<= WR_WAIT;
 			end
@@ -396,13 +425,18 @@ always@(posedge clk)begin
 		
 		//once output a 64B data, plus address and minus left length
 		if(wr_req_ack)begin
-			wr_length_64B	<= wr_length_64B - 10'd1;
-			wr_address_r	<= wr_address_r + 64;
+			wr_length_64B	<= wr_length_64B - 10'd64;
+			wr_address_r	<= wr_address_r + 64'd64;
+			if(wr_length_64B <= 10'd128)begin
+				wr_len_r	<= {wr_length_64B[7:0] - 8'd65};
+			end else begin
+				wr_len_r	<= 8'b11_1111;
+			end
 		end
 	end
 	
 	WR_WAIT:begin ///wait for the output of data
-		if(dec_last_out[wr_select])begin
+		if(decompressors_block_out_w[wr_select])begin
 			wr_state	<= WR_CHECK;
 			wr_select	<= 0;
 			dec_valid_flag	<= 0;
@@ -455,7 +489,7 @@ generate
 		.clk(clk),
 		.rst_n(rst_n),
 	
-		.job_valid(pend_rd),
+		.job_valid(dm_job_valid),
 		.job_id_in(pend_job_id),  
 		.des_address(pend_des_addr), 
 		.decompression_length(pend_rd_decompression_length),
@@ -479,7 +513,7 @@ generate
 
 		.decompression_length_original_out(dm_decompression_length_out),
 		.compression_length_original_out(dm_compression_length_out),
-	    .start_out(),
+	    .start_out(dm_start_out),
 		
 		.decompressors_idle(decompressors_idle)
 	);
@@ -496,6 +530,7 @@ generate
 
 		.data_fifo_almostfull(dec_almostfull[dec_i]),
 	
+		.block_out(decompressors_block_out_w[dec_i]),
 		.done(decompressors_done_w[dec_i]),
 		.idle(decompressors_idle_w[dec_i]),
 		.last(dec_last_out[dec_i]),
@@ -527,11 +562,11 @@ select
 
 output_fifo_ip output_fifo0 (
   .s_aclk(clk),                // input wire s_aclk
-  .s_aresetn(~rst_n),          // input wire s_aresetn
+  .s_aresetn(rst_n),          // input wire s_aresetn
   .s_axis_tvalid(of_valid_in),  // input wire s_axis_tvalid
   .s_axis_tready(of_almost_full_w),  // output wire s_axis_tready
   .s_axis_tdata(of_data_in),    // input wire [511 : 0] s_axis_tdata
-  .s_axis_tlast(of_last_in),    // input wire s_axis_tlast
+  .s_axis_tlast(dec_last_out[wr_select]),    // input wire s_axis_tlast
   
   .m_axis_tvalid(wr_valid),  // output wire m_axis_tvalid
   .m_axis_tready(wr_ready),  // input wire m_axis_tready
@@ -544,10 +579,10 @@ reg bready_r;
 always@(posedge clk)begin
 	if(~rst_n)begin
 		idle_r<=1'b1;
+	end	else if(start)begin
+		idle_r<=1'b0;
 	end else if((~decompressors_idle) == 0)begin
 		idle_r<=1'b1;		
-	end else begin
-		idle_r<=1'b0;
 	end
 	
 	if(~rst_n)begin
@@ -557,18 +592,51 @@ always@(posedge clk)begin
 	end
 end
 
+reg done_r;
+reg[6:0] done_buff;
+reg pend_empty_buff,work_empty_buff, of_empty_buff;
+reg[NUM_DECOMPRESSOR-1:0] decompressors_idle_buff;
+always@(posedge clk)begin
+	//buffer some signal to check the finish of all the jobs
+	pend_empty_buff 		<= pend_empty;
+	work_empty_buff 		<= work_empty;
+	of_empty_buff			<= wr_valid;
+	decompressors_idle_buff	<=decompressors_idle_w;
+	
+	if(~rst_n)begin
+		done_buff <= 0;
+	end else begin
+		if(pend_empty_buff & work_empty_buff & of_empty_buff & ((~decompressors_idle_buff) == 0) )begin
+			done_buff[0] <= 1'b1;
+		end else begin
+			done_buff[0] <= 1'b0;
+		end
+		done_buff[6:1] <= done_buff[5:0];
+	end
+	
+
+	if(~rst_n)begin
+		done_r	<= 1'b0;
+	end else if(start) begin
+		done_r	<= 1'b0;
+	end else if(done_buff[6:1]==6'b11_1111)begin
+		done_r	<= 1'b1;
+	end
+end
+
 assign byte_valid_out = 64'hffff_ffff_ffff_ffff;
 
-assign rd_address	=rd_address_r;
-assign rd_req		=rd_req_r;
-assign rd_len		=rd_len_r;
-assign idle			=idle_r;
+assign rd_address	= rd_address_r;
+assign rd_req		= rd_req_r;
+assign rd_len		= rd_len_r;
+assign idle			= idle_r;
 
-assign wr_address	=wr_address_r;
-assign wr_req		=wr_req_r;
-assign wr_len		=wr_len_r;
-assign bready		=bready_r;
+assign wr_address	= wr_address_r;
+assign wr_req		= wr_req_r;
+assign wr_len		= wr_len_r;
+assign bready		= bready_r;
 
-assign data_ready 	= data_ready_r;
+assign done			= done_r;
+assign data_taken 	= data_taken_r;
 
 endmodule

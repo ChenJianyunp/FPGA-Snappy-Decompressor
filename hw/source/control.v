@@ -15,8 +15,9 @@ module control#
 	input[15:0] ram_empty,//ram 
 	
 //	input block_out_finish
+	output idle, 
 	input cl_finish,
-	output page_finish
+	output job_decompressed
 	
 );
 
@@ -41,18 +42,18 @@ always@(posedge clk)begin
 end
 
 reg[2:0] state;
-reg page_finish_r,block_finish_r;
+reg job_decompressed_r,block_finish_r;
 always@(posedge clk)begin
 	case(state)
 	3'd0:begin
-		page_finish_r<=1'b0;
+		job_decompressed_r<=1'b0;
 		block_finish_r<=1'b0;
 		if(~tf_empty)begin
 			state<=3'd1;
 		end
 	end
 	3'd1:begin //idle case
-		page_finish_r<=1'b0;
+		job_decompressed_r<=1'b0;
 		block_finish_r<=1'b0;
 /*		if(ps_finish!=0)begin
 			state<=3'd2;
@@ -67,23 +68,41 @@ always@(posedge clk)begin
 		end
 	end
 	*/
-	3'd3:begin //wait for the page clean finished 
-			if(all_empty_delay==6'b1111_11 & all_empty==1'b1 & tf_empty)begin
-				page_finish_r<=1'b1;
-			end
-			else if(cl_finish)begin
-				state<=3'd4;
-				page_finish_r<=1'b0;
-			end
+	3'd3:begin //wait until the output of all data
+		if(all_empty_delay==6'b1111_11 & all_empty==1'b1 & tf_empty)begin
+			job_decompressed_r<=1'b1;
+			state<=3'd4;
+		end
 	end
-	3'd4:begin //
+	
+	3'd4:begin//wait for the page clean finished
+		if(cl_finish)begin
+			state <=3'd5;
+			job_decompressed_r<=1'b0;
+		end
+	end
+		
+	3'd5:begin //
 		block_finish_r<=1'b0;
 		state<=3'd0;
 	end
 	default:state<=3'd0;
 	endcase
 end
-assign page_finish=page_finish_r;
-//assign block_finish=block_finish_r;
+
+reg idle_r;
+
+always@(posedge clk)begin
+	if(~rst_n)begin
+		idle_r	<= 1'b1;
+	end else if(start)begin
+		idle_r	<= 1'b0;
+	end else if(cl_finish)begin //whenthe RAMs are cleaned, become idle again
+		idle_r	<= 1'b1;
+	end
+end
+
+assign job_decompressed	= job_decompressed_r;
+assign idle 			= idle_r;
 
 endmodule 
