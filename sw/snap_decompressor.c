@@ -130,7 +130,8 @@ static int action_wait_idle(struct snap_card* h, int timeout, uint64_t *elapsed)
 	return rc;
 }
 
-
+/*send all the data in the job descriptions
+*/
 static void action_decompress(struct snap_card* h,
 		job_description jd)
 {
@@ -153,7 +154,9 @@ static void action_decompress(struct snap_card* h,
 }
 
 
-
+/*
+send the job discription in the jd_array to the card
+*/
 static int do_decompression(struct snap_card *h,
 			snap_action_flag_t flags,
 			int timeout,
@@ -291,14 +294,17 @@ static int decompression_test(struct snap_card* dnc,
 	FILE * pFile0;
 	pFile0=fopen("/home/jianyuchen/bulk/snap17/testdata/test0.txt","wb");
 	fwrite((void*)jd[0].dest,sizeof(char),jd[0].wr_size,pFile0);
+	printf("output address of job0: %lx \n", (long)(jd[0].dest));
 	
 	FILE * pFile1;
 	pFile1=fopen("/home/jianyuchen/bulk/snap17/testdata/test1.txt","wb");
 	fwrite((void*)jd[1].dest,sizeof(char),jd[1].wr_size,pFile1);
+	printf("output address of job1: %lx \n", (long)(jd[1].dest));
 	
 	FILE * pFile2;
 	pFile2=fopen("/home/jianyuchen/bulk/snap17/testdata/test2.txt","wb");
 	fwrite((void*)jd[2].dest,sizeof(char),jd[2].wr_size,pFile2);
+	printf("output address of job2: %lx \n", (long)(jd[2].dest));
 	
 	free_job(jd[0]);
 	free_job(jd[1]);
