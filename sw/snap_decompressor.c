@@ -282,9 +282,9 @@ static int decompression_test(struct snap_card* dnc,
 
 	job_description jd[3];
 
-	jd[0] = generate_job("/home/jianyuchen/bulk/snap17/testdata/alice32k.snp", 0);
-	jd[1] = generate_job("/home/jianyuchen/bulk/snap17/testdata/alice32k.snp", 1);
-	jd[2] = generate_job("/home/jianyuchen/bulk/snap17/testdata/alice32k.snp", 2);
+	jd[0] = generate_job("/home/jianyuchen/bulk/snap18/testdata/alice.snp", 0);
+	jd[1] = generate_job("/home/jianyuchen/bulk/snap18/testdata/alice.snp", 1);
+	jd[2] = generate_job("/home/jianyuchen/bulk/snap18/testdata/alice.snp", 2);
 	
 	rc = do_decompression(dnc, attach_flags, timeout, jd, 3);
 	if (0 == rc) {
@@ -292,17 +292,17 @@ static int decompression_test(struct snap_card* dnc,
 	}
 	/******output the decompression result******/
 	FILE * pFile0;
-	pFile0=fopen("/home/jianyuchen/bulk/snap17/testdata/test0.txt","wb");
+	pFile0=fopen("/home/jianyuchen/bulk/snap18/testdata/test0.txt","wb");
 	fwrite((void*)jd[0].dest,sizeof(char),jd[0].wr_size,pFile0);
 	printf("output address of job0: %lx \n", (long)(jd[0].dest));
 	
 	FILE * pFile1;
-	pFile1=fopen("/home/jianyuchen/bulk/snap17/testdata/test1.txt","wb");
+	pFile1=fopen("/home/jianyuchen/bulk/snap18/testdata/test1.txt","wb");
 	fwrite((void*)jd[1].dest,sizeof(char),jd[1].wr_size,pFile1);
 	printf("output address of job1: %lx \n", (long)(jd[1].dest));
 	
 	FILE * pFile2;
-	pFile2=fopen("/home/jianyuchen/bulk/snap17/testdata/test2.txt","wb");
+	pFile2=fopen("/home/jianyuchen/bulk/snap18/testdata/test2.txt","wb");
 	fwrite((void*)jd[2].dest,sizeof(char),jd[2].wr_size,pFile2);
 	printf("output address of job2: %lx \n", (long)(jd[2].dest));
 	

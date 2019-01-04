@@ -40,9 +40,7 @@ wire[127:0] df_dout;
 wire qt_almostfull;
 reg df_wr_en;
 always@(*)begin
-	/*valid_in is RVALID signal in axi, and fifo_almostfull is the RRREADY signal,
-	the input is valid only if both signals are high*/
-	if(valid_in & (~data_fifo_almostfull))begin
+	if(valid_in)begin
 		df_wr_en <= 1'b1;
 	end else begin
 		df_wr_en <= 1'b0;
@@ -55,7 +53,8 @@ data_fifo df0(
 	.wr_en(df_wr_en),
 	.rd_en((~qt_almostfull) & ~df_empty),
 	.dout(df_dout),
-	.almost_full(data_fifo_almostfull),
+	.prog_full(data_fifo_almostfull), //almost full when 500 elements inside
+	.almost_full(),
 	.empty(df_empty),
 	.valid(df_valid),
 	.wr_rst_busy(),

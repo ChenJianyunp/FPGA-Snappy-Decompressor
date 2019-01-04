@@ -344,7 +344,7 @@ localparam WR_START = 3'd0, WR_CHECK = 3'd1, WR_PROCESS = 3'd2, WR_WRITE_ADDRESS
 
 reg[31:6] decompression_length_r;   ///[32:15]:number of writing [14:12]:number of 4k blocks in writing  [11:6]:number of 64B in block [5:0]:fraction
 wire[31:0] decompression_length_select;
-reg[9:0] wr_length_64B; //number of 64B data to be written
+reg[10:0] wr_length_64B; //number of 64B data to be written
 reg[63:0] wr_address_r, wr_address_wb;
 wire[63:0] wr_address_w;
 reg[2:0] wr_state;
@@ -396,15 +396,15 @@ always@(posedge clk)begin
 	end
 	
 	WR_PROCESS:begin
-		if(decompression_length_r[31:6] <= 26'd512)begin//check whether this is the last writing of the job
-			wr_length_64B	<= decompression_length_r[15:6];
+		if(decompression_length_r[31:6] <= 26'd1024)begin//check whether this is the last writing of the job
+			wr_length_64B	<= decompression_length_r[16:6];
 			wr_write_back	<= 0;
 		end else begin
-			wr_length_64B	<= 10'd512;
+			wr_length_64B	<= 11'd1024;
 			wr_write_back	<= (1 << wr_select);
 		end
-		decompression_length_r[31:6]<= decompression_length_r[31:6] - 26'd512;
-		wr_address_wb				<= wr_address_r + 64'd32768;
+		decompression_length_r[31:6]<= decompression_length_r[31:6] - 26'd1024;
+		wr_address_wb				<= wr_address_r + 64'd65536;
 		wr_state					<= WR_WRITE_ADDRESS;
 		wr_req_r					<= 1'b1; //start to write address
 		dec_valid_flag				<= (1 << wr_select);
@@ -418,7 +418,7 @@ always@(posedge clk)begin
 	end
 				
 	WR_WRITE_ADDRESS:begin
-		if(wr_length_64B <= 10'd64)begin //the last
+		if(wr_length_64B <= 11'd64)begin //the last
 			if(wr_req_ack)begin
 				wr_req_r	<= 1'b0;
 				wr_state	<= WR_WAIT;
@@ -428,7 +428,7 @@ always@(posedge clk)begin
 		
 		//once output a 64B data, plus address and minus left length
 		if(wr_req_ack)begin
-			wr_length_64B	<= wr_length_64B - 10'd64;
+			wr_length_64B	<= wr_length_64B - 11'd64;
 			wr_address_r	<= wr_address_r + 64'd4096;
 			if(wr_length_64B <= 10'd128)begin
 				wr_len_r	<= {wr_length_64B[7:0] - 8'd65};
@@ -531,7 +531,7 @@ generate
 		.start(dm_start_out),
 		.compression_length({3'd0, dm_compression_length_out}),
 		.decompression_length(dm_decompression_length_out),
-		.wr_ready(wr_block & of_almost_full_w & dec_valid_flag[dec_i]),
+		.wr_ready(of_almost_full_w & dec_valid_flag[dec_i]),
 
 		.data_fifo_almostfull(dec_almostfull[dec_i]),
 	
@@ -568,7 +568,7 @@ select
 output_fifo_ip output_fifo0 (
   .s_aclk(clk),                // input wire s_aclk
   .s_aresetn(rst_n),          // input wire s_aresetn
-  .s_axis_tvalid(of_valid_in & wr_block),  // input wire s_axis_tvalid
+  .s_axis_tvalid(of_valid_in),  // input wire s_axis_tvalid
   .s_axis_tready(of_almost_full_w),  // output wire s_axis_tready
   .s_axis_tdata(of_data_in),    // input wire [511 : 0] s_axis_tdata
   .s_axis_tlast(of_last_in),    // input wire s_axis_tlast

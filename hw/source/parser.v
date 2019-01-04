@@ -121,6 +121,7 @@ assign length_3b=data_buff[143:138];
 assign copy_sep_2b=(offset_2b<=length_2b) & (offset_2b>2);
 assign copy_sep_3b=(offset_3b<=length_3b) & (offset_3b>2);
 
+reg bug_flag;
 always@(posedge clk)begin
 	case(state)
 	3'd0:begin   ///idle state
@@ -130,6 +131,7 @@ always@(posedge clk)begin
 		///set the output to sub parsers to invalid
 		lit_valid		<=1'b0;
 		copy_valid		<=1'b0;
+		bug_flag		<= 1'b0;
 	end
 	
 	3'd1:begin
@@ -242,10 +244,12 @@ always@(posedge clk)begin
 			
 			8'b1111_1000:begin
 				$display("wrong case 8'b1111_1000   %d",PARSER_NUM);
+				bug_flag		<= 1'b1;
 			end
 			
 			8'b1111_1100:begin
 				$display("wrong case 8'b1111_1100	%d",PARSER_NUM);
+				bug_flag		<= 1'b1;
 			end
 			
 			8'bxxxx_xx01:begin
@@ -297,6 +301,7 @@ always@(posedge clk)begin
 			
 			8'bxxxx_xx11:begin
 				$display("wrong case 8'bxxxx_xx11  %d",PARSER_NUM);
+				bug_flag		<= 1'b1;
 			end
 			
 			default:begin  ///when the literal token has 1 byte
