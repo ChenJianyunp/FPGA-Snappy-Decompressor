@@ -282,11 +282,11 @@ static int decompression_test(struct snap_card* dnc,
 
 	job_description jd[3];
 
-	jd[0] = generate_job("/home/jianyuchen/bulk/snap18/testdata/alice.snp", 0);
-	jd[1] = generate_job("/home/jianyuchen/bulk/snap18/testdata/alice.snp", 1);
-	jd[2] = generate_job("/home/jianyuchen/bulk/snap18/testdata/alice.snp", 2);
+	jd[0] = generate_job("/home/jianyuchen/bulk/snap18/testdata/alice29.txt.snp", 0);
+	jd[1] = generate_job("/home/jianyuchen/bulk/snap18/testdata/alice29.txt.snp", 1);
+	jd[2] = generate_job("/home/jianyuchen/bulk/snap18/testdata/alice29.txt.snp", 2);
 	
-	rc = do_decompression(dnc, attach_flags, timeout, jd, 3);
+	rc = do_decompression(dnc, attach_flags, timeout, jd, 1);
 	if (0 == rc) {
 		printf("decompression finished");
 	}

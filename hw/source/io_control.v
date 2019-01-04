@@ -18,7 +18,7 @@ module io_control
 	input clk,
 	input rst_n,
 	
-	input done,
+	output done,
 	input start,
 	input job_valid,
 	output idle,
@@ -51,6 +51,36 @@ module io_control
 	input[31:0] decompression_length,
 	input[31:0] compression_length
 );
+
+/*The variables hear are for benchmark only
+Do NOT use it in ANY synthesisable code*/
+integer cycle_cnt;
+integer fp_w;
+reg[3:0] benchmark_state;
+initial begin
+	fp_w=$fopen("benchmark.txt","w");
+	cycle_cnt		<= 0;
+	benchmark_state	<= 4'b0;
+end
+always@(posedge clk)begin
+	cycle_cnt <= cycle_cnt + 1;
+	case(benchmark_state)
+	4'd0:begin
+		if(start)begin $fwrite(fp_w,"Decompression starts at %d\n",cycle_cnt); end
+		benchmark_state <= 4'd1;
+	end
+	
+	4'd1:begin
+		if(done)begin
+			$fwrite(fp_w,"Decompression finishs at %d\n",cycle_cnt);
+			benchmark_state <= 4'd2;
+			$fclose(fp_w);
+		end
+	end
+	endcase
+end
+/********************************/
+
 //wires for the pending fifo
 wire[63:0] pend_des_addr_w, pend_src_addr_w;
 reg[63:0] pend_des_addr, pend_src_addr;
@@ -100,7 +130,7 @@ always@(posedge clk)begin
 	///input 
 	if(dec_almostfull == 0)begin
 		data_taken_r	<= 1'b1;
-	end else begin 		//if one of the decompressor is almost full, stop the input
+	end else begin 		//if the selected decompressor is almost full, stop the input
 		data_taken_r	<= 1'b0;
 	end
 	
@@ -221,7 +251,7 @@ always@(posedge clk)begin
 		end
 		
 		3'd4:begin//check whether there is idle decompressor
-			if((decompressors_idle != 0) & (work_count < (NUM_DECOMPRESSOR-1)))begin 
+			if((decompressors_idle != 0) & (work_count < NUM_DECOMPRESSOR))begin 
 				pd_rd_state <= 3'd5;
 				working_add	<= 1'b1;
 			end
@@ -355,6 +385,7 @@ reg wr_flag,wr_flag_buff; //whether the output of decompressor can start
 reg[NUM_DECOMPRESSOR_LOG-1:0] wr_select;
 reg[NUM_DECOMPRESSOR-1:0] dec_valid_flag; //select a decompressor to output
 reg wr_block; //block the data out
+reg block_out_record; //record whether receive a decompressors_block_out_w signal 
 /*First, check all decompressors one by one to find a decompressor with valid output, then output all the data in the 64KB block,
 and change to next decompressor*/
 always@(posedge clk)begin
@@ -393,6 +424,7 @@ always@(posedge clk)begin
 		//assign the data of corresponding decompressor to the registers of this FSM
 		decompression_length_r[31:6]	<= decompression_length_select[31:6];
 		wr_address_r[63:0]				<= wr_address_w;
+		block_out_record				<= 1'b0;
 	end
 	
 	WR_PROCESS:begin
@@ -414,7 +446,7 @@ always@(posedge clk)begin
 		end else begin
 			wr_len_r		<= 8'b11_1111;
 		end
-		
+		block_out_record	<= 1'b0;
 	end
 				
 	WR_WRITE_ADDRESS:begin
@@ -437,14 +469,26 @@ always@(posedge clk)begin
 			end
 			wr_block		<= 1'b1;
 		end
+		
+		
+		if(decompressors_block_out_w[wr_select])begin //if receive a block out signal, record it
+			block_out_record	<= 1'b1;
+		end
 	end
 	
 	WR_WAIT:begin ///wait for the output of data
-		if(decompressors_block_out_w[wr_select])begin
-			wr_state	<= WR_CHECK;
-			wr_select	<= 0;
+		if(decompressors_block_out_w[wr_select] | block_out_record)begin //receive or already received
+			wr_state		<= WR_CHECK;
 			dec_valid_flag	<= 0;
 			wr_block		<= 1'b0;
+			block_out_record<= 1'b0;
+			
+			if(wr_select == NUM_DECOMPRESSOR)begin
+				wr_select	<= 0;
+			end else begin
+				wr_select	<= wr_select + 1;
+			end
+			
 		end
 	end
 	default:begin wr_state	<= WR_START; end 
