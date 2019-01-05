@@ -113,7 +113,7 @@ wire[NUM_DECOMPRESSOR-1:0] dec_valid_out, dec_last_out, dec_almostfull;
 wire[NUM_DECOMPRESSOR * 64 -1:0] dec_des_address_w;
 wire[NUM_DECOMPRESSOR * 32 -1:0] dec_decompression_length_w;
 wire[NUM_DECOMPRESSOR * 512 -1:0] dec_data_out_w;
-
+wire[NUM_DECOMPRESSOR-1:0] dec_data_wr_out;
 ///buffer the input data and output signal of decompressors 
 reg data_taken_r;
 reg rd_last_buff;
@@ -125,6 +125,7 @@ wire[511:0] of_data_in_w;
 reg of_last_in;
 reg of_valid_in;
 reg of_almost_full;
+reg of_wr;
 wire of_almost_full_w;
 always@(posedge clk)begin
 	///input 
@@ -411,7 +412,7 @@ always@(posedge clk)begin
 		if(dec_valid_out[wr_select] == 1'b1)begin
 			wr_state	<= WR_PROCESS;
 		end else begin
-			if(wr_select == NUM_DECOMPRESSOR)begin
+			if(wr_select == (NUM_DECOMPRESSOR -1))begin
 				wr_select	<= 0;
 			end else begin
 				wr_select	<= wr_select + 1;
@@ -483,7 +484,7 @@ always@(posedge clk)begin
 			wr_block		<= 1'b0;
 			block_out_record<= 1'b0;
 			
-			if(wr_select == NUM_DECOMPRESSOR)begin
+			if(wr_select == (NUM_DECOMPRESSOR-1))begin
 				wr_select	<= 0;
 			end else begin
 				wr_select	<= wr_select + 1;
@@ -528,6 +529,15 @@ generate
 	wire[511:0] dm_data_out;
 	wire dm_data_valid_out;
 	wire dm_start_out;
+	
+	wire[511:0] dec_data_out;
+	wire dec_data_valid_out;
+	wire dec_last_w;
+	reg[511:0] dec_data_buff;
+	reg dec_data_valid_buff; //whether the data is valid 
+	reg dec_last_buff;
+	reg dec_data_wr_buff; //whether the data can be written to the output fifo
+	
 	decompressor_input_manage
 	#( 
 		.NUM_DECOMPRESSOR(NUM_DECOMPRESSOR),
@@ -575,26 +585,38 @@ generate
 		.start(dm_start_out),
 		.compression_length({3'd0, dm_compression_length_out}),
 		.decompression_length(dm_decompression_length_out),
-		.wr_ready(of_almost_full_w & dec_valid_flag[dec_i]),
+		.wr_ready((~of_almost_full_w) & dec_valid_flag[dec_i]),
 
 		.data_fifo_almostfull(dec_almostfull[dec_i]),
 	
 		.block_out(decompressors_block_out_w[dec_i]),
 		.done(decompressors_done_w[dec_i]),
 		.idle(decompressors_idle_w[dec_i]),
-		.last(dec_last_out[dec_i]),
-		.data_out(dec_data_out_w[dec_i * 512 + 511:dec_i * 512]),
+		.last(dec_last_w),
+		.data_out(dec_data_out),
 		.byte_valid_out(),
-		.valid_out(dec_valid_out[dec_i])
+		.valid_out(dec_data_valid_out)
 	);
+	
+	always@(posedge clk)begin
+		dec_data_buff		<= dec_data_out;
+		dec_data_valid_buff <= dec_data_valid_out;
+		dec_data_wr_buff	<= dec_data_valid_out & dec_valid_flag[dec_i];
+		dec_last_buff		<= dec_last_w;
+	end
+	assign dec_last_out[dec_i] = dec_last_buff;
+	assign dec_data_out_w[dec_i * 512 + 511:dec_i * 512] = dec_data_buff;
+	assign dec_valid_out[dec_i]	= dec_data_valid_buff;
+	assign dec_data_wr_out[dec_i] = dec_data_wr_buff;
+	
 	end
 endgenerate 
 
 
-always@(*)begin
+always@(posedge clk)begin
 	of_data_in		<= of_data_in_w;
 	of_last_in		<= dec_last_out[wr_select];
-	of_valid_in		<= dec_valid_out[wr_select] & (dec_valid_flag!=0);
+	of_wr			<= dec_data_wr_out[wr_select];
 end
 
 select 
@@ -612,10 +634,11 @@ select
 output_fifo_ip output_fifo0 (
   .s_aclk(clk),                // input wire s_aclk
   .s_aresetn(rst_n),          // input wire s_aresetn
-  .s_axis_tvalid(of_valid_in),  // input wire s_axis_tvalid
-  .s_axis_tready(of_almost_full_w),  // output wire s_axis_tready
+  .s_axis_tvalid(of_wr),  // input wire s_axis_tvalid
+  .s_axis_tready(),  // output wire s_axis_tready
   .s_axis_tdata(of_data_in),    // input wire [511 : 0] s_axis_tdata
   .s_axis_tlast(of_last_in),    // input wire s_axis_tlast
+  .axis_prog_full(of_almost_full_w),
   
   .m_axis_tvalid(wr_valid),  // output wire m_axis_tvalid
   .m_axis_tready(wr_ready),  // input wire m_axis_tready
