@@ -122,6 +122,12 @@ assign copy_sep_2b=(offset_2b<=length_2b) & (offset_2b>2);
 assign copy_sep_3b=(offset_3b<=length_3b) & (offset_3b>2);
 
 always@(posedge clk)begin
+	
+	if(~rst_n)begin
+		state <= 3'd0;
+		copy_valid		<=1'b0;
+		lit_valid		<=1'b0;
+	end else
 	case(state)
 	3'd0:begin   ///idle state
 		state			<=	3'b1;
@@ -377,12 +383,6 @@ always@(posedge clk)begin
 	endcase
 end
 
-initial
-begin
-	copy_valid	<=1'b0;
-	lit_valid	<=1'b0;
-end
-
 
 LZA16 lza16(
 	.x({1'b0,tokenpos_buff[14:0]}), // input data
@@ -401,6 +401,7 @@ parser_lit#(
 	.PARSER_NUM(PARSER_NUM)
 )parser_lit0(
 	.clk(clk),
+	.rst_n(rst_n),
 	.data(lit_data),
 //	.start_lit(lit_start_lit),
 	.length(lit_length), //length of the token  minus 1
@@ -498,6 +499,7 @@ parser_copy #(
 	.PARSER_NUM(PARSER_NUM)
 )parser_copy0(
 	.clk(clk),
+	.rst_n(rst_n),
 	.length_in(copy_length),
 	.address_in(copy_address),	/////////[2:0]:shift [6:3]index for bram [15:7]: bram address 
 	.offset_in(copy_offset),

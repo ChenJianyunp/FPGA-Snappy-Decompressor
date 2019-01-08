@@ -75,6 +75,10 @@ always@(*)begin
 end
 
 always@(posedge clk)begin
+	if(~rst_n)begin
+		cl_state	<= 3'd0;
+		cl_flag		<=1'b0;
+	end else
 	case(cl_state)
 	3'd0:begin///idle state
 		cl_address	<=9'b0;
@@ -123,7 +127,7 @@ reg valid_rd_buff;
 reg[8:0] copy_address_buff;
 reg[7:0] copy_valid_buff;
 reg[15:0] copy_offset_buff;
-always@(*)begin
+always@(*)begin //if change to posedge, add reset
 	valid_rd_buff		<=valid_rd_in;
 	copy_address_buff	<=copy_address;
 	copy_valid_buff		<=copy_valid_in;
@@ -139,9 +143,14 @@ reg[15:0] des_address2;    ///address of the destination
 reg forward1; ///set to one if forwarding is used
 reg[1:0] forward2;
 always@(posedge clk)begin
-	valid_rd_buff2		<=valid_rd_buff;
+	if(~rst_n)begin
+		valid_rd_buff2		<= 1'b0;
+	end else begin
+		valid_rd_buff2		<= valid_rd_buff;
+		
+	end
+	copy_valid_buff2	<= copy_valid_buff;
 	copy_address_buff2	<=copy_address_buff;
-	copy_valid_buff2	<=copy_valid_buff;
 	copy_offset_buff2	<=copy_offset_buff;
 	
 	des_address2		<={copy_address_buff,BLOCKNUM,3'b0}+copy_offset_buff;
@@ -168,11 +177,17 @@ reg[15:0] des_address3;
 reg[63:0] data_3;
 reg[7:0] hit_3;            ///whether the bytes are read
 always@(posedge clk)begin
-	valid_rd_buff3		<=valid_rd_buff2;
-	copy_address_buff3	<=copy_address_buff2;
-	copy_valid_buff3	<=copy_valid_buff2;
-	copy_offset_buff3	<=copy_offset_buff2;
-	des_address3		<=des_address2;	
+	if(~rst_n)begin
+		valid_rd_buff3	<= 1'b0;
+	end else begin
+		valid_rd_buff3	<= valid_rd_buff2;
+		
+	end
+	copy_valid_buff3<= copy_valid_buff2;
+	copy_address_buff3	<= copy_address_buff2;
+
+	copy_offset_buff3	<= copy_offset_buff2;
+	des_address3		<= des_address2;	
 	
 	///implementing the forwarding here, if the offset==1 or offset==2 (in this case the offset must be less than length, the length of copy is at leat 4)
 	if(forward1)begin
@@ -197,7 +212,6 @@ reg[10:0] debug1,debug2,debug3;////for debug only
 //4th stage
 reg valid_rd_buff4;
 reg[8:0] copy_address_buff4;
-reg[7:0] copy_unsolved_buff4;
 reg[15:0] copy_offset_buff4;
 reg[15:0] des_address4;
 reg[32:0] unsolved_token4;   //unsolved read
@@ -208,7 +222,12 @@ reg[15:0] hit_4;
 wire[127:0] data_shift;
 assign data_shift	={data_3,64'b0}	>>{copy_offset_buff3[2:0],3'b0};
 always@(posedge clk)begin
-	valid_rd_buff4		<=valid_rd_buff3;
+	if(~rst_n)begin
+		valid_rd_buff4		<= 1'b0;
+	end else begin
+		valid_rd_buff4		<= valid_rd_buff3;
+	end
+	
 	des_address4		<=des_address3;
 	unsolved_token4		<={copy_address_buff3,hit_3^copy_valid_buff3,copy_offset_buff3};
 	
@@ -216,7 +235,11 @@ always@(posedge clk)begin
 	debug2<=hit_3^copy_valid_buff3;
 	debug3<=copy_offset_buff3;
 	
-	valid_unsolved4		<=((hit_3^copy_valid_buff3)!=8'b0)&valid_rd_buff3;
+	if(~rst_n)begin
+		valid_unsolved4		<= 1'b0;
+	end else begin
+		valid_unsolved4		<= ((hit_3^copy_valid_buff3)!=8'b0)&valid_rd_buff3;
+	end
 	
 	data_4				<=data_shift[127:0];
 	hit_4				<={hit_3,8'b0}		>>copy_offset_buff3[2:0];
@@ -235,9 +258,18 @@ assign ram_select_w={16'b11,16'b11}<<des_address4[6:3];
 always@(posedge clk)begin	
 	//for odd and even output
 	ram_select_5		<=ram_select_w[31:16];
-	if(des_address4[3])begin   //////////if starts with odd block
+	if(~rst_n)begin
+		valid_even_5	<= 1'b0;
+		valid_odd_5		<= 1'b0;
+	end else if(des_address4[3])begin 
 		valid_odd_5		<=(hit_4[15:8]!=8'b0)&valid_rd_buff4;
 		valid_even_5	<=(hit_4[7:0]!=8'b0)&valid_rd_buff4;
+	end else begin
+		valid_even_5	<=(hit_4[15:8]!=8'b0)&valid_rd_buff4;
+		valid_odd_5		<=(hit_4[7:0]!=8'b0)&valid_rd_buff4;	
+	end
+	
+	if(des_address4[3])begin   //////////if starts with odd block
 		data_odd_5		<=data_4[127:64];
 		data_even_5		<=data_4[63:0];
 		hit_odd_5		<=hit_4[15:8];
@@ -245,8 +277,6 @@ always@(posedge clk)begin
 		address_even_5	<=des_address_plus[15:7];
 	end  
 	else begin
-		valid_even_5	<=(hit_4[15:8]!=8'b0)&valid_rd_buff4;
-		valid_odd_5		<=(hit_4[7:0]!=8'b0)&valid_rd_buff4;	
 		data_even_5		<=data_4[127:64];
 		data_odd_5		<=data_4[63:0];
 		hit_even_5		<=hit_4[15:8];
@@ -274,20 +304,8 @@ assign ram_select_out=ram_select_5;
 
 initial
 begin
-	valid_rd_buff	<=1'b0;
-	valid_rd_buff2	<=1'b0;
-	valid_rd_buff3	<=1'b0;
-	valid_rd_buff4	<=1'b0;
-	address_odd_5	<=1'b0;
-	address_even_5	<=1'b0;
 	
-	copy_unsolved_buff4<=8'b0;
-	hit_3			<=8'b0;
-	copy_valid_buff3<=8'b0;
-	copy_valid_buff2<=1'b0;
-	copy_valid_buff	<=1'b0;
-	
-	cl_flag			<=1'b0;
+//	hit_3			<=8'b0;
 end
 
 

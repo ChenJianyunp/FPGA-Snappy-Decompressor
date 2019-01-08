@@ -69,13 +69,14 @@ logic easy, i have "valid_inverse" register, this register is inversed after eve
 before writing to BRAM and after reading from BRAM*/
 always@(posedge clk)begin
 	if(~rst_n)begin
-		state<=3'd0;
+		state		<= 3'd0;
+		rd_valid	<= 1'b1;
 	end
 	case(state)
 	3'd0:begin  ///idle state
 		if(start)begin
 			state		<=3'd1;
-			rd_valid	<=1'b1;
+			valid_inverse <=1'b0;
 		end else begin
 			rd_valid	<=1'b0;
 		end
@@ -170,7 +171,12 @@ reg[7:0] lit_valid_buff;
 reg[7:0] lit_byte_valid;
 wire[7:0] dina_valid_w;
 always@(posedge clk)begin
-	valid_wr_buff	<=valid_wr_in[ram_i];
+	if(~rst_n)begin
+		valid_wr_buff	<= 1'b0;
+	end else begin
+		valid_wr_buff	<= valid_wr_in[ram_i];
+	end
+	
 	lit_buff		<=lit_in[64*ram_i+63:64*ram_i];
 	lit_address_buff<=lit_address[9*ram_i+8:9*ram_i];
 	lit_valid_buff	<=lit_valid[8*ram_i+7:8*ram_i]^{8{valid_inverse}};
@@ -178,17 +184,14 @@ always@(posedge clk)begin
 	data_out_buff	<=data_w;
 end
 assign dina_valid_w=wr_flag?8'b0:lit_valid_buff;
-
+/*
 initial
 begin
-	valid_wr_buff	<=1'b0;
 	lit_buff		<=64'b0;
 	lit_address_buff<=9'b0;
 	lit_valid_buff	<=8'b0;
-	valid_inverse	<=1'b0;
-	rd_valid		<=1'b0;
 	wr_address		<=9'b0;
-end
+end*/
 
 blockram result_ram0(
 	.addra(lit_address_buff),

@@ -12,6 +12,7 @@ module parser_lit#(
 )
 (
 	input clk,
+	input rst_n,
 	input[127:0] data,
 //	input start_lit,
 	input[3:0] length, //length of the token  minus 1
@@ -62,7 +63,12 @@ always@(posedge clk)begin
 	address_1_2		<=address_1_2_w[15:3];
 	address_1_3		<=address_1_3_w[15:3];
 	
-	valid_1				<=valid_in;
+	if(~rst_n)begin
+		valid_1		<= 1'b0;
+	end else begin
+		valid_1		<=valid_in;
+	end
+	
 end
 
 reg[31:0] wr_2;
@@ -95,7 +101,12 @@ always@(posedge clk)begin
 	default:;
 	endcase
 	
-	valid_2	<=	valid_1;
+	if(~rst_n)begin
+		valid_2	<=	1'b0;
+	end else begin
+		valid_2	<=	valid_1;
+	end
+	
 	
 	
 	/************************************************
@@ -114,11 +125,6 @@ always@(posedge clk)begin
 	end*/
 end
 
-initial
-begin
-	valid_1 <=1'b0;
-	valid_2	<=1'b0;
-end
 
 assign data0=data_2_0;
 assign data1=data_2_1;
@@ -158,6 +164,7 @@ module parser_copy#(
 )
 (
 	input clk,
+	input rst_n,
 	input[5:0] length_in,
 	input[15:0] address_in,   /////////[2:0]:shift [6:3]index for bram [15:7]: bram address 
 	input[15:0] offset_in,
@@ -180,7 +187,12 @@ always@(posedge clk)begin
 //		address_2 	<= address_1;
 		address_rd_2<=address_in-offset_in;
 		offset_2	<=offset_in;
-	valid_2	<=valid_in;
+	if(~rst_n)begin
+		valid_2	<= 1'b0;
+	end else begin
+		valid_2	<= valid_in;
+	end
+	
 	
 	///////for debug
 //	if(valid_1)begin
@@ -221,16 +233,14 @@ always@(posedge clk)begin
 	address_3	<=address_3_w2;
 	offset_3	<=offset_2;
 	ram_select_3<=ram_select_3_w;
-		
-	valid_3	<=	valid_2;
+	if(~rst_n)begin
+		valid_3	<= 1'b0;
+	end	else begin
+		valid_3	<= valid_2;
+	end
+	
 end
 
-initial
-begin
-//	valid_1<=1'b0;
-	valid_2<=1'b0;
-	valid_3<=1'b0;
-end
 //assign valid_out	=valid_3;
 assign rd_out		=rd_3;
 assign address_out	=address_3;
