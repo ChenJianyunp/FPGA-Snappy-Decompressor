@@ -210,7 +210,8 @@ int get_decompression_length(uint8_t * src){
 static int decompression_test(struct snap_card* dnc,
 			snap_action_flag_t attach_flags,
 			int action,
-			int timeout/* Timeout to wait in sec */
+			int timeout,/* Timeout to wait in sec */
+            char* inputfile
 			)    
 {
 	int rc;
@@ -224,7 +225,9 @@ static int decompression_test(struct snap_card* dnc,
 //	uint64_t addr_in = 0x0ull;
 	ssize_t size = 0;
 	size_t set_size = 1*64*1024;
-	const char *input = "/home/jianyuchen/bulk/snap15/testdata/urls.10K.snp";
+    printf("1:%s\n",inputfile);
+	const char *input = inputfile;
+    printf("2:%s\n",input);
 	size = __file_size(input);
 	printf("size of the input is %d \n",(int)size);
 	ibuff = snap_malloc(size);
@@ -260,7 +263,7 @@ software side, always allocate a more memory for writing back. */
 	}
 	/******output the decompression result******/
 	FILE * pFile;
-	pFile=fopen("/home/jianyuchen/bulk/snap14/testdata/test.txt","wb");
+	pFile=fopen("/home/jianyuchen/bulk/snap15/testdata/test.txt","wb");
 	fwrite((void*)obuff,sizeof(char),set_size,pFile);
 	
 	
@@ -288,24 +291,15 @@ static void usage(const char *prog)
 		"    -q, --quiet          quiece output\n"
 		"    -a, --action         Action to execute (default 1)\n"
 		"    -t, --timeout        Timeout after N sec (default 1 sec)\n"
-		"    -I, --irq            Enable Action Done Interrupt (default No Interrupts)\n"
 		"    ----- Action 1 Settings -------------- (-a) ----\n"
 		"    -s, --start          Start delay in msec (default %d)\n"
 		"    -e, --end            End delay time in msec (default %d)\n"
 		"    -i, --interval       Inrcrement steps in msec (default %d)\n"
 		"    ----- Action 2,3,4,5,6 Settings ------ (-a) -----\n"
-		"    -S, --size4k         Number of 4KB Blocks for Memcopy (default 1)\n"
 		"    -B, --size64         Number of 64 Bytes Blocks for Memcopy (default 0)\n"
 		"    -N, --iter           Memcpy Iterations (default 1)\n"
 		"    -A, --align          Memcpy alignemend (default 4 KB)\n"
 		"    -D, --dest           Memcpy Card RAM base Address (default 0)\n"
-		"\tTool to check Stage 1 FPGA or Stage 2 FPGA Mode (-a) for snap bringup.\n"
-		"\t-a 1: Count down mode (Stage 1)\n"
-		"\t-a 2: Copy from Host Memory to Host Memory.\n"
-		"\t-a 3: Copy from Host Memory to DDR Memory (FPGA Card).\n"
-		"\t-a 4: Copy from DDR Memory (FPGA Card) to Host Memory.\n"
-		"\t-a 5: Copy from DDR Memory to DDR Memory (both on FPGA Card).\n"
-		"\t-a 6: Copy from Host -> DDR -> Host.\n"
 		, prog, START_DELAY, END_DELAY, STEP_DELAY);
 }
 
@@ -313,24 +307,19 @@ static void usage(const char *prog)
 int main(int argc, char *argv[])
 {
 	char device[128];
+    char inputfile[256]="/home/jianyuchen/bulk/snap15/testdata/urls.10K.snp";
 	struct snap_card *dn;	/* lib snap handle */
 	int start_delay = START_DELAY;
 	int end_delay = END_DELAY;
-//	int step_delay = STEP_DELAY;
-//	int delay;
 	int card_no = 0;
 	int cmd;
 	int action = 0;
-//	int num_4k = 1;	/* Default is 1 4 K Blocks */
 	int num_64 = 0;	/* Default is 0 64 Bytes Blocks */
 	int rc = 1;
-//	int memcpy_iter = DEFAULT_MEMCPY_ITER;
 	int memcpy_align = DEFAULT_MEMCPY_BLOCK;
 	uint64_t cir;
 	int timeout = ACTION_WAIT_TIME;
 	snap_action_flag_t attach_flags = 0;
-//	uint64_t td;
-//	struct snap_action *act = NULL;
 	unsigned long ioctl_data;
 	unsigned long dma_align;
 	unsigned long dma_min_size;
@@ -349,11 +338,9 @@ int main(int argc, char *argv[])
 			{ "quiet",    no_argument,       NULL, 'q' },
 			{ "start",    required_argument, NULL, 's' },
 			{ "end",      required_argument, NULL, 'e' },
-			{ "interval", required_argument, NULL, 'i' },
+			{ "input",    required_argument, NULL, 'i' },
 			{ "action",   required_argument, NULL, 'a' },
-			{ "size4k",   required_argument, NULL, 'S' },
 			{ "size64",   required_argument, NULL, 'B' },
-			{ "iter",     required_argument, NULL, 'N' },
 			{ "align",    required_argument, NULL, 'A' },
 			{ "dest",     required_argument, NULL, 'D' },
 			{ "timeout",  required_argument, NULL, 't' },
@@ -385,6 +372,9 @@ int main(int argc, char *argv[])
 		case 'e':
 			end_delay = strtol(optarg, (char **)NULL, 0);
 			break;
+        case 'i':
+            strcpy(inputfile,optarg);
+            break;
 		case 'B':	/* size64 */
 			num_64 = strtol(optarg, (char **)NULL, 0);
 			break;
@@ -462,7 +452,7 @@ int main(int argc, char *argv[])
 //		(int)(cir & 0x1ff));
 
 	//do decompression
-	rc=decompression_test(dn,attach_flags,action,timeout);
+	rc=decompression_test(dn,attach_flags,action,timeout,inputfile);
 
 __exit1:
 	// Unmap AFU MMIO registers, if previously mapped
