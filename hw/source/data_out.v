@@ -184,14 +184,6 @@ always@(posedge clk)begin
 	data_out_buff	<=data_w;
 end
 assign dina_valid_w=wr_flag?8'b0:lit_valid_buff;
-/*
-initial
-begin
-	lit_buff		<=64'b0;
-	lit_address_buff<=9'b0;
-	lit_valid_buff	<=8'b0;
-	wr_address		<=9'b0;
-end*/
 
 blockram result_ram0(
 	.addra(lit_address_buff),

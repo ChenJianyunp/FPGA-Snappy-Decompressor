@@ -37,8 +37,11 @@ reg[127:0] data_buff1;
 reg valid_1;
 always@(posedge clk)begin
 	data_buff1<=data;
-	
-	valid_1	<=	valid;
+	if(~rst_n)begin
+		valid_1	<= 1'b0;
+	end else begin
+		valid_1	<=	valid;
+	end
 	
 	/////////for debug only
 //	if(data_buff1[127:96]==32'h033e_b412)begin
@@ -137,8 +140,12 @@ an extra valid signal for the last slice. After all the data is passed, make fin
 		end
 	end
 
+	if(~rst_n)begin
+		valid_2	<= 1'b0;
+	end else begin
+		valid_2	<=	valid_1&init_flag;
+	end
 	
-	valid_2	<=	valid_1&init_flag;
 end
 
 
@@ -149,7 +156,13 @@ always@(posedge clk)begin
 	data_buff3<=data_buff2_1;
 
 	pos_final3	<= pos_final_delay;
-	valid_3		<= (valid_2|last_flag_delay)&finish_flag;	
+	
+	if(~rst_n)begin
+		valid_3		<= 1'b0;
+	end else begin
+		valid_3		<= (valid_2|last_flag_delay)&finish_flag;	
+	end
+	
 end
 
 
@@ -243,7 +256,12 @@ If you have a better way, please contact me, I am very interesting about that.
 	data_buff4<=data_buff3;
 
 	pos_final4<=pos_final3;
-	valid_4	<=	valid_3;
+	if(~rst_n)begin
+		valid_4	<= 1'b0;
+	end else begin
+		valid_4	<=	valid_3;
+	end
+	
 //	rst_4	<=	rst_3;
 	init_flag4<=	init_flag3;
 end
@@ -341,7 +359,13 @@ always@(posedge clk)begin
 	end
 
 	pos_final5<=pos_final4;
-	valid_5<=valid_4;
+	
+	if(~rst_n)begin
+		valid_5<= 1'b0;
+	end else begin
+		valid_5<= valid_4;
+	end
+	
 //	rst_5	<=	rst_4;
 	init_flag5<=	init_flag4;
 	///////////////for debug only
@@ -429,7 +453,13 @@ always@(posedge clk)begin
 		current_length	<=	curent_length_w-((lit_garbage_next&init_flag5)?garbage_cnt_next:0);
 		sum_length		<=current_length+sum_length;
 	end
-	valid_6<=valid_5;
+	
+	if(~rst_n)begin
+		valid_6	<= 1'b0;
+	end else begin
+		valid_6	<= valid_5;
+	end
+	
 end
 /////////////
 /////////////7th stage
@@ -451,24 +481,15 @@ always@(posedge clk)begin
 	
 	garbage_cnt7<=garbage_cnt;
 	start_lit_flag_7<=	start_lit_flag_6;
-	if(start_lit_flag_6==1'b0 & tokenpos_6==16'b0)begin
+	
+	if(~rst_n)begin
+		valid_7<=1'b0;
+	end else if(start_lit_flag_6==1'b0 & tokenpos_6==16'b0)begin
 		valid_7<=1'b0;
 	end else begin
 		valid_7<=valid_6;
 	end
 	sum_length_7<=sum_length;
-end
-
-initial
-begin
-	valid_1	<=1'b0;
-	valid_2	<=1'b0;
-	valid_3	<=1'b0;
-	valid_4	<=1'b0;
-	valid_5	<=1'b0;
-	valid_6	<=1'b0;
-	valid_7	<=1'b0;
-	tokenpos_next<=2'b01;
 end
 
 //when finish_flag is set to high, all work of preparser has finished

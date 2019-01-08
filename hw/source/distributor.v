@@ -56,12 +56,13 @@ end
 
 reg stop_reg;
 always@(posedge clk)begin
-	stop_reg	<=stop;
+	if(~rst_n)begin
+		stop_reg <=1'b0;
+	end else begin
+		stop_reg	<=stop;
+	end	
 end
-initial
-begin
-	stop_reg <=1'b0;
-end
+
 /////for arbiter
 wire[NUM_PARSER-1:0] grand_w;
 reg[NUM_PARSER-1:0] base;
