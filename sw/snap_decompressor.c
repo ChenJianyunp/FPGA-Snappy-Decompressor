@@ -211,8 +211,9 @@ static int decompression_test(struct snap_card* dnc,
 			snap_action_flag_t attach_flags,
 			int action,
 			int timeout,/* Timeout to wait in sec */
-            char* inputfile
-			)    
+            char* inputfile,
+            char* outputfile
+            )    
 {
 	int rc;
 	void *src = NULL;
@@ -226,8 +227,8 @@ static int decompression_test(struct snap_card* dnc,
 	ssize_t size = 0;
 	size_t set_size = 1*64*1024;
     printf("1:%s\n",inputfile);
+    printf("2:%s\n",outputfile);
 	const char *input = inputfile;
-    printf("2:%s\n",input);
 	size = __file_size(input);
 	printf("size of the input is %d \n",(int)size);
 	ibuff = snap_malloc(size);
@@ -263,7 +264,8 @@ software side, always allocate a more memory for writing back. */
 	}
 	/******output the decompression result******/
 	FILE * pFile;
-	pFile=fopen("/home/jianyuchen/bulk/snap15/testdata/test.txt","wb");
+//	pFile=fopen("/home/jianfang/bulk/dbAccel/SNAP/snap_singleEngine_passTest_forSW/testdata/test.txt","wb");
+	pFile=fopen(outputfile,"wb");
 	fwrite((void*)obuff,sizeof(char),set_size,pFile);
 	
 	
@@ -294,20 +296,22 @@ static void usage(const char *prog)
 		"    ----- Action 1 Settings -------------- (-a) ----\n"
 		"    -s, --start          Start delay in msec (default %d)\n"
 		"    -e, --end            End delay time in msec (default %d)\n"
-		"    -i, --interval       Inrcrement steps in msec (default %d)\n"
+		"    -i, --input          Specify the input file (in simulation, please use abs path)\n"
+		"    -o, --ouput          Specify the output file (in simulation, please use abs path)\n"
 		"    ----- Action 2,3,4,5,6 Settings ------ (-a) -----\n"
 		"    -B, --size64         Number of 64 Bytes Blocks for Memcopy (default 0)\n"
 		"    -N, --iter           Memcpy Iterations (default 1)\n"
 		"    -A, --align          Memcpy alignemend (default 4 KB)\n"
 		"    -D, --dest           Memcpy Card RAM base Address (default 0)\n"
-		, prog, START_DELAY, END_DELAY, STEP_DELAY);
+		, prog, START_DELAY, END_DELAY);
 }
 
 
 int main(int argc, char *argv[])
 {
 	char device[128];
-    char inputfile[256]="/home/jianyuchen/bulk/snap15/testdata/urls.10K.snp";
+    char inputfile[256]="testdata/test.snp";
+    char outputfile[256]="testdata/test.txt";
 	struct snap_card *dn;	/* lib snap handle */
 	int start_delay = START_DELAY;
 	int end_delay = END_DELAY;
@@ -339,15 +343,15 @@ int main(int argc, char *argv[])
 			{ "start",    required_argument, NULL, 's' },
 			{ "end",      required_argument, NULL, 'e' },
 			{ "input",    required_argument, NULL, 'i' },
+			{ "output",   required_argument, NULL, 'o' },
 			{ "action",   required_argument, NULL, 'a' },
 			{ "size64",   required_argument, NULL, 'B' },
 			{ "align",    required_argument, NULL, 'A' },
-			{ "dest",     required_argument, NULL, 'D' },
 			{ "timeout",  required_argument, NULL, 't' },
 			{ "irq",      no_argument,       NULL, 'I' },
 			{ 0,          no_argument,       NULL, 0   },
 		};
-		cmd = getopt_long(argc, argv, "C:s:e:i:a:S:B:N:A:D:t:IqvVh",
+		cmd = getopt_long(argc, argv, "C:s:e:i:o:a:S:B:N:A:D:t:IqvVh",
 			long_options, &option_index);
 		if (cmd == -1)  /* all params processed ? */
 			break;
@@ -374,6 +378,9 @@ int main(int argc, char *argv[])
 			break;
         case 'i':
             strcpy(inputfile,optarg);
+            break;
+        case 'o':
+            strcpy(outputfile,optarg);
             break;
 		case 'B':	/* size64 */
 			num_64 = strtol(optarg, (char **)NULL, 0);
@@ -452,7 +459,7 @@ int main(int argc, char *argv[])
 //		(int)(cir & 0x1ff));
 
 	//do decompression
-	rc=decompression_test(dn,attach_flags,action,timeout,inputfile);
+	rc=decompression_test(dn,attach_flags,action,timeout,inputfile,outputfile);
 
 __exit1:
 	// Unmap AFU MMIO registers, if previously mapped
