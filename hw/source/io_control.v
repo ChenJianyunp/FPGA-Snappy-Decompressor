@@ -9,30 +9,30 @@ Description:	The module to contol the input and output dataflow.
 				This module is to control the dataflow of axi protocal interface.
 ********************************************/
 module io_control(
-	input clk,
-	input rst_n,
-	
-	input[63:0] src_addr,
-	output rd_req,
-	input rd_req_ack,
-	output[7:0] rd_len,
-	output[63:0] rd_address,
-	
-	input wr_valid,
-	input wr_ready,
-	input[63:0] des_addr,
-	output wr_req,
-	input wr_req_ack,
-	output[7:0] wr_len,
-	output[63:0] wr_address,
-	output bready,
-	
-	input done,
-	input start,
-	output idle,
-	
-	input[31:0] decompression_length,
-	input[34:0] compression_length
+    input clk,
+    input rst_n,
+
+    input[63:0] src_addr,
+    output rd_req,
+    input rd_req_ack,
+    output[7:0] rd_len,
+    output[63:0] rd_address,
+
+    input wr_valid,
+    input wr_ready,
+    input[63:0] des_addr,
+    output wr_req,
+    input wr_req_ack,
+    output[7:0] wr_len,
+    output[63:0] wr_address,
+    output bready,
+
+    input done,
+    input start,
+    output idle,
+
+    input[31:0] decompression_length,
+    input[34:0] compression_length
 );
 
 /****************solved the read data*************/ 
@@ -121,7 +121,7 @@ always@(posedge clk)begin
 		end
 		3'd1:begin
 			if(decompression_length_r[31:6]<=26'd64)begin
-				wr_len_r	<={2'b0,decompression_length_r[11:6]};
+				wr_len_r	<={2'b0,decompression_length_r[11:6]-6'd1};
 			end else begin
 				wr_len_r	<=8'b11_1111;
 				decompression_length_r[31:6]	<=decompression_length_r[31:6]-26'd64;
@@ -133,7 +133,7 @@ always@(posedge clk)begin
 			if(wr_req_ack)begin
 				wr_address_r	<=wr_address_r+64'd4096;
 				if(decompression_length_r[31:6]<=26'd64)begin
-					wr_len_r	<={2'b0,decompression_length_r[11:6]-8'b1};
+					wr_len_r	<={2'b0,decompression_length_r[11:6]-6'd1};
 					wr_state	<=3'd3;
 				end else begin
 					wr_len_r	<=8'b11_1111;
