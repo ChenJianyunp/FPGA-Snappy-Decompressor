@@ -1,5 +1,5 @@
 # FPGA-Snappy-Decompressor (Work-in)
-A new kind of hardware decompressor for Snappy decompression. It is a new kind of decompressor architecture which can process more than one literal token and copy token parallelly.
+An FPGA-based hardware Snappy decompressor. This is a new kind of decompressor architecture that can process more than one literal token and copy token in parallel.
 
 Directory and file
 ---
@@ -40,3 +40,4 @@ Update log
 18-11-2018: Fix a bug on the length of garbage_cnt\
 25-11-2018: Fix a bug of overflow on page_fifo\
 26-11-2018: Fix a bug loss the last slice
+22-01-2019: Fix a bug of AXI protocol (read/write length and its FSM)
