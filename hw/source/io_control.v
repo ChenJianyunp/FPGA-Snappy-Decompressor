@@ -9,30 +9,30 @@ Description:	The module to contol the input and output dataflow.
 				This module is to control the dataflow of axi protocal interface.
 ********************************************/
 module io_control(
-    input clk,
-    input rst_n,
-
-    input[63:0] src_addr,
-    output rd_req,
-    input rd_req_ack,
-    output[7:0] rd_len,
-    output[63:0] rd_address,
-
-    input wr_valid,
-    input wr_ready,
-    input[63:0] des_addr,
-    output wr_req,
-    input wr_req_ack,
-    output[7:0] wr_len,
-    output[63:0] wr_address,
-    output bready,
-
-    input done,
-    input start,
-    output idle,
-
-    input[31:0] decompression_length,
-    input[34:0] compression_length
+	input clk,
+	input rst_n,
+	
+	input[63:0] src_addr,
+	output rd_req,
+	input rd_req_ack,
+	output[7:0] rd_len,
+	output[63:0] rd_address,
+	
+	input wr_valid,
+	input wr_ready,
+	input[63:0] des_addr,
+	output wr_req,
+	input wr_req_ack,
+	output[7:0] wr_len,
+	output[63:0] wr_address,
+	output bready,
+	
+	input done,
+	input start,
+	output idle,
+	
+	input[31:0] decompression_length,
+	input[34:0] compression_length
 );
 
 /****************solved the read data*************/ 
@@ -63,12 +63,14 @@ always@(posedge clk)begin
 		3'd1:begin // the state to read the first 4KB chunk of the 64KB Snappy block
 			//If the block is greater than 4KB (64*64), read a 4KB block. If not, read all the block
 			if(compression_length_r[34:6]<=29'd64)begin
-					rd_len_r					<={2'd0,compression_length_r[11:6]-6'd1};
+					rd_len_r				    <={2'd0,compression_length_r[11:6]-6'd1};
+                    compression_length_r[34:6]  <=29'd0;
+                    rd_state                    <=3'd3;
 			end else begin
-					rd_len_r					<=8'b11_1111;
+					rd_len_r				    <=8'b11_1111;
 					compression_length_r[34:6]	<=compression_length_r[34:6]-29'd64;
+			        rd_state				    <=3'd2;
 			end
-			rd_state				<=3'd2;
 			rd_req_r				<=1'b1;
 		end
 		3'd2:begin//the state to read the the block
@@ -78,6 +80,7 @@ always@(posedge clk)begin
 				if(compression_length_r[34:6]<=29'd64)begin
 					rd_state					<=3'd3;
 					rd_len_r					<={2'd0,compression_length_r[11:6]-6'd1};
+                    compression_length_r[34:6]  <=29'd0;
 				end else begin
 					rd_len_r					<=8'b11_1111;
 					compression_length_r[34:6]	<=compression_length_r[34:6]-29'd64;
@@ -114,30 +117,33 @@ always@(posedge clk)begin
 					decompression_length_r[31:6]<=decompression_length[31:6];
 				end
 				
-				wr_state		<=3'd1;
-				wr_req_r		<=1'b0;
-				wr_address_r	<=des_addr;
+				wr_state        <=3'd1;
+				wr_req_r        <=1'b0;
+				wr_address_r    <=des_addr;
 			end
 		end
 		3'd1:begin
 			if(decompression_length_r[31:6]<=26'd64)begin
-				wr_len_r	<={2'b0,decompression_length_r[11:6]-6'd1};
+				wr_len_r                        <={2'b0,decompression_length_r[11:6]-6'd1};
+				decompression_length_r[31:6]	<=26'd0;
+			    wr_state                        <=3'd3;
 			end else begin
-				wr_len_r	<=8'b11_1111;
-				decompression_length_r[31:6]	<=decompression_length_r[31:6]-26'd64;
+				wr_len_r                        <=8'b11_1111;
+				decompression_length_r[31:6]    <=decompression_length_r[31:6]-26'd64;
+			    wr_state                        <=3'd2;
 			end
-			wr_req_r	<=1'b1;
-			wr_state	<=3'd2;
+			wr_req_r    <=1'b1;
 		end
 		3'd2:begin
 			if(wr_req_ack)begin
-				wr_address_r	<=wr_address_r+64'd4096;
+				wr_address_r    <=wr_address_r+64'd4096;
 				if(decompression_length_r[31:6]<=26'd64)begin
-					wr_len_r	<={2'b0,decompression_length_r[11:6]-6'd1};
-					wr_state	<=3'd3;
+					wr_len_r                        <={2'b0,decompression_length_r[11:6]-6'd1};
+				    decompression_length_r[31:6]    <=26'd0;
+					wr_state                        <=3'd3;
 				end else begin
-					wr_len_r	<=8'b11_1111;
-					decompression_length_r[31:6]	<=decompression_length_r[31:6]-26'd64;
+					wr_len_r                        <=8'b11_1111;
+					decompression_length_r[31:6]    <=decompression_length_r[31:6]-26'd64;
 				end
 			end
 		end
