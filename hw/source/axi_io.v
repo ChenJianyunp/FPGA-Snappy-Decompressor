@@ -65,6 +65,8 @@ generate
 	end
 endgenerate
 /*******************/
+wire done_decompressor;
+wire done_control;
 
 decompressor d0(
 	.clk(clk),
@@ -78,7 +80,7 @@ decompressor d0(
 
 	.data_fifo_almostfull(dec_almostfull),
 	
-	.done(done),
+	.done(done_decompressor),
 	.last(dma_wr_data_last),
 	.data_out(dec_data_out),
 	.byte_valid_out(dec_byte_valid),
@@ -92,10 +94,11 @@ io_control io_control0(
 	.rd_req(dma_rd_req),
 	.rd_req_ack(dma_rd_req_ack),
 	.rd_len(dma_rd_len),
-	.done(done),
+	.done(done_decompressor),
 	.start(start),
 	.idle(idle),
 	.rd_address(dma_rd_addr),
+	.done_out(done_control),
 	
 	.wr_valid(dma_wr_wvalid),
 	.wr_ready(dma_wr_ready),
@@ -105,11 +108,13 @@ io_control io_control0(
 	.wr_len(dma_wr_len),
 	.wr_address(dma_wr_addr),
 	.bready(dma_wr_bready),
+	.bresp(dma_wr_done),
 	
 	.decompression_length(decompression_length),
 	.compression_length({3'b0,compression_length})
 
 );
-assign dma_rd_data_taken=~dec_almostfull;
+assign dma_rd_data_taken	= ~dec_almostfull;
+assign done					= done_decompressor && done_control;
 
 endmodule 
