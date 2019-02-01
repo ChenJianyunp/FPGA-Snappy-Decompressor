@@ -251,6 +251,7 @@ architecture action_example of action_example is
 			start:		in std_logic;
 			done:		out std_logic;
 			idle:		out std_logic;
+			ready:		out std_logic;
 			src_addr:	in std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
 			des_addr:	in std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
 			compression_length:	in std_logic_vector(31 downto 0);
@@ -436,6 +437,7 @@ axi_io0: axi_io
 		start				=>app_start,
 		done				=>app_done,
 		idle				=>app_idle,
+		ready				=>app_ready,
 		
 		src_addr			=>(reg_0x38&reg_0x34),
 		des_addr			=>(reg_0x40&reg_0x3c),

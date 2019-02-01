@@ -1,20 +1,5 @@
 ## This file records the fixed bugs.
 
+#2019-01-31  bresp bug: the AFU needs to wait until the last write data be successful (or the 'bresp' signal back) before the 'done' signal is set and sent. ## Jian Fang
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#2019-01-31  app_ready bug: The app_ready signal needs to set to 1 after reset. Leave it empty or set it to 0 will cause wready signal(for write data) unset, and thus the write data will never send. This bug can not be seen in the PSLSE (version upto 2018-08-31) simulation platform but be presented in the pratical platform.
+#2019-01-31  app_ready bug: The app_ready signal needs to set to 1 after reset. Leave it empty or set it to 0 will cause wready signal(for write data) unset, and thus the write data will never send. This bug can not be seen in the PSLSE (version upto 2018-08-31) simulation platform but be presented in the pratical platform. ## Jian Fang

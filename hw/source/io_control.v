@@ -1,12 +1,12 @@
 /********************************************
-File name: 		io_control
-Author: 		Jianyu Chen
-School: 		Delft Univsersity of Technology
-Date:			10th Sept, 2018
-Description:	The module to contol the input and output dataflow. 
-				Each burst read will acquire 4K data, except the last burst read of a file (it can be less)
-				Each burst write will write 4K data, also except the last one
-				This module is to control the dataflow of axi protocal interface.
+File name:      io_control
+Author:         Jianyu Chen
+School:         Delft Univsersity of Technology
+Date:           10th Sept, 2018
+Description:    The module to contol the input and output dataflow. 
+                Each burst read will acquire 4K data, except the last burst read of a file (it can be less)
+                Each burst write will write 4K data, also except the last one
+                This module is to control the dataflow of axi protocal interface.
 ********************************************/
 module io_control(
     input clk,
@@ -28,9 +28,10 @@ module io_control(
     output bready,
     input bresp,
 
-    input done,
+    input done_i,
     input start,
     output idle,
+    output ready,
     output done_out,
 
     input[31:0] decompression_length,
@@ -60,50 +61,50 @@ always@(posedge clk)begin
                     compression_length_r[34:6]  <= compression_length[34:6];
                 end
 
-                rd_address_r			<= src_addr;
-                rd_req_r				<= 1'b0;
-                rd_state				<= 3'd1;
+                rd_address_r            <= src_addr;
+                rd_req_r                <= 1'b0;
+                rd_state                <= 3'd1;
             end
         end
         3'd1:begin // the state to read the first 4KB chunk of the 64KB Snappy block
             //If the block is greater than 4KB (64*64), read a 4KB block. If not, read all the block
             if(compression_length_r[34:6]<=29'd64)begin
-                rd_len_r				    <= {2'd0,compression_length_r[11:6]-6'd1};
+                rd_len_r                    <= {2'd0,compression_length_r[11:6]-6'd1};
                 compression_length_r[34:6]  <= 29'd0;
                 rd_state                    <= 3'd3;
             end else begin
-                rd_len_r				    <= 8'b11_1111;
-                compression_length_r[34:6]	<= compression_length_r[34:6]-29'd64;
-                rd_state				    <= 3'd2;
+                rd_len_r                    <= 8'b11_1111;
+                compression_length_r[34:6]    <= compression_length_r[34:6]-29'd64;
+                rd_state                    <= 3'd2;
             end
-            rd_req_r				<= 1'b1;
+            rd_req_r                <= 1'b1;
         end
         3'd2:begin//the state to read the the block
             //once get an acknowlege, read the next chunk
             if(rd_req_ack)begin
-                rd_address_r			        <= rd_address_r+64'd4096;
+                rd_address_r                    <= rd_address_r+64'd4096;
                 if(compression_length_r[34:6]<=29'd64)begin
-                    rd_state					<= 3'd3;
-                    rd_len_r					<= {2'd0,compression_length_r[11:6]-6'd1};
+                    rd_state                    <= 3'd3;
+                    rd_len_r                    <= {2'd0,compression_length_r[11:6]-6'd1};
                     compression_length_r[34:6]  <= 29'd0;
                 end else begin
-                    rd_len_r					<= 8'b11_1111;
-                    compression_length_r[34:6]	<= compression_length_r[34:6]-29'd64;
+                    rd_len_r                    <= 8'b11_1111;
+                    compression_length_r[34:6]    <= compression_length_r[34:6]-29'd64;
                 end
             end
         end
         3'd3:begin//state to reset the rd_req_ack
             if(rd_req_ack)begin
-                rd_req_r				<= 1'b0;
-                rd_state				<= 3'd4;
+                rd_req_r                <= 1'b0;
+                rd_state                <= 3'd4;
             end
         end
         3'd4:begin
-            read_done_r		<= 1'b1;
-            rd_state		<= 3'd0;
+            read_done_r        <= 1'b1;
+            rd_state        <= 3'd0;
         end
 
-        default:rd_state	<= 3'd0;
+        default:rd_state    <= 3'd0;
     endcase
 end
 
@@ -117,12 +118,12 @@ reg[63:0] wr_req_count;
 reg done_out_r;
 always@(posedge clk)begin
     if(~rst_n)begin
-        wr_state		<= 3'd0;
-        wr_req_r		<= 1'b0;
-        wr_req_count	<= 64'b0;
-        done_out_r		<= 1'b0;
+        wr_state        <= 3'd0;
+        wr_req_r        <= 1'b0;
+        wr_req_count    <= 64'b0;
+        done_out_r        <= 1'b0;
     end else case(wr_state)
-        3'd0:begin				// initial state
+        3'd0:begin                // initial state
             if(start)begin
                 //similar to the read case
                 if(decompression_length[5:0]!=6'b0)begin
@@ -136,10 +137,10 @@ always@(posedge clk)begin
                 wr_address_r    <= des_addr;
             end
         end
-        3'd1:begin				// state for sending the first 4K block
+        3'd1:begin                // state for sending the first 4K block
             if(decompression_length_r[31:6]<=26'd64)begin
                 wr_len_r                        <= {2'b0,decompression_length_r[11:6]-6'd1};
-                decompression_length_r[31:6]	<= 26'd0;
+                decompression_length_r[31:6]    <= 26'd0;
                 wr_state                        <= 3'd3;
             end else begin
                 wr_len_r                        <= 8'b11_1111;
@@ -148,9 +149,9 @@ always@(posedge clk)begin
             end
             wr_req_r    <= 1'b1;
         end
-        3'd2:begin				// state for sending the rest 4K blocks
+        3'd2:begin                // state for sending the rest 4K blocks
             if(wr_req_ack)begin
-                wr_req_count	<= wr_req_count+64'b1;
+                wr_req_count    <= wr_req_count+64'b1;
                 wr_address_r    <= wr_address_r+64'd4096;
                 if(decompression_length_r[31:6]<=26'd64)begin
                     wr_len_r                        <= {2'b0,decompression_length_r[11:6]-6'd1};
@@ -162,16 +163,16 @@ always@(posedge clk)begin
                 end
             end
         end
-        3'd3:begin				// state for waiting the last wr_req_r is acknolodged
+        3'd3:begin                // state for waiting the last wr_req_r is acknolodged
             if(wr_req_ack)begin
-                wr_req_count	<= wr_req_count+64'b1;
-                wr_req_r		<= 1'b0;
-                wr_state		<= 3'd4;
+                wr_req_count    <= wr_req_count+64'b1;
+                wr_req_r        <= 1'b0;
+                wr_state        <= 3'd4;
             end
         end
 
         3'd4:begin
-            if(wr_done_count==wr_req_count && read_done_r) begin
+            if(wr_done_count==wr_req_count && read_done_r) begin    //write request ack count equal to write data ack count and the read is done
                 done_out_r  <= 1'b1;
                 wr_state    <= 3'd0;
             end
@@ -187,46 +188,21 @@ always@(posedge clk)
 begin
     if(~rst_n)
     begin
-        wr_done_count	<=64'b0;
+        wr_done_count    <=64'b0;
     end
     else if(start)
     begin
-        wr_done_count	<=64'b0;
+        wr_done_count    <=64'b0;
     end
     else if(bresp)
     begin
-        wr_done_count	<=wr_done_count+64'b1;
+        wr_done_count    <=wr_done_count+64'b1;
     end
-end
-
-reg wr_last_r;
-reg[31:0] decompression_length_minus;
-reg[31:0] data_cnt;  
-always@(posedge clk)begin//generate the wr_last signal
-    if(~rst_n)begin
-        data_cnt	<=32'b0;
-    end else if(wr_valid & wr_ready)begin
-        data_cnt	<= data_cnt+32'd64;
-    end
-
-    // decompression_length_minus = decompression_length_r
-    if(start)begin
-        decompression_length_minus[31:6]<=decompression_length[31:6]+(decompression_length[5:0]!=6'b0)-32'b1;
-    end
-
-    //check whether this is the last write
-    if(~rst_n)begin
-        wr_last_r	<=1'b0;
-    end else if((data_cnt[11:6]==6'b11_1111)|(data_cnt[31:6]==decompression_length_minus[31:6]))begin
-        wr_last_r	<=1'b1;
-    end else begin
-        wr_last_r	<=1'b0;
-    end
-
 end
 
 reg idle_r;
 reg bready_r;
+reg ready_r;
 always@(posedge clk)begin
     if(~rst_n)begin
         idle_r      <= 1'b1;
@@ -234,9 +210,17 @@ always@(posedge clk)begin
     end else if(start)begin
         idle_r      <= 1'b0;
         bready_r    <= 1'b1;
-    end else if(done && done_out_r)begin
+    end else if(done_i && done_out_r)begin
         idle_r      <= 1'b1;
         bready_r    <= 1'b0;
+    end
+end
+
+always@(posedge clk) begin
+    if(~rst_n)begin
+        ready_r    <= 1'b0;
+    end else begin
+        ready_r    <= 1'b1;
     end
 end
 
@@ -244,6 +228,7 @@ assign rd_address   = rd_address_r;
 assign rd_req       = rd_req_r;
 assign rd_len       = rd_len_r;
 assign idle         = idle_r;
+assign ready        = ready_r;
 
 assign wr_address   = wr_address_r;
 assign wr_req       = wr_req_r;

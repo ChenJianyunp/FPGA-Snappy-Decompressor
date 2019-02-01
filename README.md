@@ -37,7 +37,9 @@ On default strategy, the timing constrain may fail due to congestion
 
 Update log
 ----
-18-11-2018: Fix a bug on the length of garbage_cnt\
-25-11-2018: Fix a bug of overflow on page_fifo\
-26-11-2018: Fix a bug loss the last slice
-22-01-2019: Fix a bug of AXI protocol (read/write length and its FSM)
+| Jianyu Chen | 18-11-2018: Fix a bug on the length of garbage_cnt\
+| Jianyu Chen | 25-11-2018: Fix a bug of overflow on page_fifo\
+| Jianyu Chen | 26-11-2018: Fix a bug loss the last slice
+| Jian Fang   | 22-01-2019: Fix a bug in handshake of AXI protocol (1.read/write length; 2.FSM for input that less than 4KB)
+| Jian Fang   | 01-02-2019: Fix a bug on app_ready signal
+| Jian Fang   | 01-02-2019: Fix a bug on write responses(bresp signal, need to wait until the last bresp back for the write data)
