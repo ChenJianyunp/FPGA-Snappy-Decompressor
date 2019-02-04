@@ -324,13 +324,13 @@ always@(posedge clk)begin
 	if(~rst_n)begin
 		lit_length<=16'b0;
 	end
-	else if(valid_4	&	(lit_length[15:4]==12'b0))begin  //check if lit_length>=16
+	else if(valid_4	&	(lit_length[15:4]==12'b0 || lit_length[15:0]==16'd16))begin  //check if lit_length>=16
 		lit_length<=(token1_lit&{16{tokenpos_final[15]}})|(token2_lit&{16{tokenpos_final[14]}})|(token3_lit&{16{tokenpos_final[13]}})|(token4_lit&{16{tokenpos_final[12]}})|(token5_lit&{16{tokenpos_final[11]}})|(token6_lit&{16{tokenpos_final[10]}})|(token7_lit&{16{tokenpos_final[9]}})|(token8_lit&{16{tokenpos_final[8]}})|(token9_lit&{16{tokenpos_final[7]}})|(token10_lit&{16{tokenpos_final[6]}})|(token11_lit&{16{tokenpos_final[5]}})|(token12_lit&{16{tokenpos_final[4]}})|(token13_lit&{16{tokenpos_final[3]}})|(token14_lit&{16{tokenpos_final[2]}})|(token15_lit&{16{tokenpos_final[1]}})|(token16_lit&{16{tokenpos_final[0]}});
-		current_lit_length={12'b0,lit_length[3:0]};  ///if lit_length <16, current_lit_length=lit_length
+		current_lit_length	<=	{12'b0,lit_length[3:0]};  ///if lit_length <16, current_lit_length=lit_length
 	end else if(valid_4) begin
 		lit_length[15:4]	<=	lit_length[15:4]-12'b1; //calculate lit_length=lit_length-16
 		lit_length[3:0]		<=	lit_length[3:0];
-		current_lit_length=16'd16;  				///if lit_length <16, current_lit_length=16
+		current_lit_length	<=	16'd16;  				///if lit_length >=16, current_lit_length=16
 	end
 	
 	if(~rst_n)begin
@@ -524,10 +524,9 @@ module decoder(
 reg[8:0] length;                    ////length of token which will be added to curent page
 reg[15:0] tokenpos_reg;
 reg[17:0] lit_leng_reg;
-reg[1:0] lit_minus_reg;
 
 wire[16:0] length_lit3;//length of literal content when the literal token is 3
-wire[8:0] space1,space2,space3;
+wire[8:0] space1,space2,space3;//space left in this slice
 assign space1= bytenum[8:0];
 assign space2= (bytenum[8:0]>9'b1)?(bytenum[8:0]-9'b1):9'b0;
 assign space3= (bytenum[8:0]>9'd2)?(bytenum[8:0]-9'd2):9'b0;
@@ -535,16 +534,14 @@ assign length_lit3	=	({1'b0,data[15:8],data[23:16]}+17'b1);
 always@(*)begin
 	casex(data[23:16])
 		8'b1111_0000:begin  //when the literal token has 2 bytes
-			length		<=	(space2 > ({1'b0,data[15:8]}+9'b1))? ({1'b0,data[15:8]}+10'b1): space2;
-			tokenpos_reg<=16'b0000_0000_0000_0000;
-			lit_leng_reg<={10'b0,data[15:8]}-{bytenum[17:0]}+18'd2;
-			lit_minus_reg<=2'd1;
+			length		 <=	space2;// the length of it will be at least 16 
+			tokenpos_reg <= 16'b0000_0000_0000_0000;
+			lit_leng_reg <= {10'b0,data[15:8]}-{bytenum[17:0]}+18'd2;
 		end
 		8'b1111_0100:begin  //when the literal token has 3 bytes
-			length		<=	({8'b0,space3} > length_lit3) ? length_lit3[8:0]:space3;
-			tokenpos_reg<=16'b0000_0000_0000_0000;
-			lit_leng_reg<={2'b0,data[15:8],data[23:16]}-{bytenum[17:0]}+18'd3;
-			lit_minus_reg<=2'd2;
+			length		 <=	space3;// the length of it will be at least 16 
+			tokenpos_reg <= 16'b0000_0000_0000_0000;
+			lit_leng_reg <= {2'b0,data[7:0],data[15:8]}-{bytenum[17:0]}+18'd3;
 		end
 		8'bxxxx_xx01:begin
 			length<={5'b0,data[20:18]}+9'd4;
@@ -566,7 +563,7 @@ end
 
 assign tokenpos=tokenpos_reg;
 assign tokenleng=length;
-assign lit_leng=lit_leng_reg[17]?16'b0:lit_leng_reg[15:0];
+assign lit_leng=lit_leng_reg[17]?16'b0:lit_leng_reg[15:0]; //if the number is minus, set to zero
 endmodule
 
 
