@@ -71,6 +71,7 @@ always@(posedge clk)begin
 	if(~rst_n)begin
 		state		<= 3'd0;
 		rd_valid	<= 1'b1;
+		wr_address	<= 3'd0;
 	end
 	case(state)
 	3'd0:begin  ///idle state

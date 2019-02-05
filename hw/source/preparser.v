@@ -326,7 +326,7 @@ always@(posedge clk)begin
 	end
 	else if(valid_4	&	(lit_length[15:4]==12'b0 || lit_length[15:0]==16'd16))begin  //check if lit_length>=16
 		lit_length<=(token1_lit&{16{tokenpos_final[15]}})|(token2_lit&{16{tokenpos_final[14]}})|(token3_lit&{16{tokenpos_final[13]}})|(token4_lit&{16{tokenpos_final[12]}})|(token5_lit&{16{tokenpos_final[11]}})|(token6_lit&{16{tokenpos_final[10]}})|(token7_lit&{16{tokenpos_final[9]}})|(token8_lit&{16{tokenpos_final[8]}})|(token9_lit&{16{tokenpos_final[7]}})|(token10_lit&{16{tokenpos_final[6]}})|(token11_lit&{16{tokenpos_final[5]}})|(token12_lit&{16{tokenpos_final[4]}})|(token13_lit&{16{tokenpos_final[3]}})|(token14_lit&{16{tokenpos_final[2]}})|(token15_lit&{16{tokenpos_final[1]}})|(token16_lit&{16{tokenpos_final[0]}});
-		current_lit_length	<=	{12'b0,lit_length[3:0]};  ///if lit_length <16, current_lit_length=lit_length
+		current_lit_length	<=	{11'b0,lit_length[4:0]};  ///if lit_length <16, current_lit_length=lit_length
 	end else if(valid_4) begin
 		lit_length[15:4]	<=	lit_length[15:4]-12'b1; //calculate lit_length=lit_length-16
 		lit_length[3:0]		<=	lit_length[3:0];
@@ -337,8 +337,8 @@ always@(posedge clk)begin
 		tokenpos_next<=2'b01;
 	end
 	else if(valid_4)begin
-		tokenpos_next[0]	<=token16_temp[0];
-		tokenpos_next[1]	<=token16_temp[1]&token15_temp[1];
+		tokenpos_next[0]	<= token16_temp[0];
+		tokenpos_next[1]	<= token16_temp[1]&token15_temp[1];
 	end
 	
 //	tokenpos[15]	<=	tokenpos_final[15]&firstpage_flag;
@@ -451,7 +451,7 @@ always@(posedge clk)begin
 	end 
 	else if(valid_5)begin
 		current_length	<=	curent_length_w-((lit_garbage_next&init_flag5)?garbage_cnt_next:0);
-		sum_length		<=current_length+sum_length;
+		sum_length		<= current_length+sum_length;
 	end
 	
 	if(~rst_n)begin
