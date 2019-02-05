@@ -39,7 +39,10 @@ Update log
 ----
 | Jianyu Chen | 18-11-2018: Fix a bug on the length of garbage_cnt\
 | Jianyu Chen | 25-11-2018: Fix a bug of overflow on page_fifo\
-| Jianyu Chen | 26-11-2018: Fix a bug loss the last slice
-| Jian Fang   | 22-01-2019: Fix a bug in handshake of AXI protocol (1.read/write length; 2.FSM for input that less than 4KB)
-| Jian Fang   | 01-02-2019: Fix a bug on app_ready signal
-| Jian Fang   | 01-02-2019: Fix a bug on write responses(bresp signal, need to wait until the last bresp back for the write data)
+| Jianyu Chen | 26-11-2018: Fix a bug loss the last slice\
+| Jian Fang   | 22-01-2019: Fix a bug in handshake of AXI protocol (1.read/write length; 2.FSM for input that less than 4KB)\
+| Jian Fang   | 01-02-2019: Fix a bug on app_ready signal\
+| Jian Fang   | 01-02-2019: Fix a bug on write responses(bresp signal, need to wait until the last bresp back for the write data)\
+| Jianyu Chen | 04-02-2019: Fix the bug in the calculation of token length of 3Byte literal token\
+| Jianyu Chen | 05-02-2019: Fix a bug when calculate the length of a literal token within a slice\
+| Jianyu Chen | 05-02-2019: Fix the bug in checking the empty of decompressor when the file is very small
