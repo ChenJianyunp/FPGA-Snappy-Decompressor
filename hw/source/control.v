@@ -16,15 +16,15 @@ module control#
 	
 //	input block_out_finish
 	input cl_finish,
-	output page_finish
+	output page_finish //all decompression has finished, the data is in BRAMs, but the output is not yet finished 
 	
 );
 
 reg all_empty;
-reg[5:0] all_empty_delay;
+reg[15:0] all_empty_delay;
 reg page_input_finish_flag;
 always@(posedge clk)begin
-	if(ps_empty==PARSER_ALLONE & ram_empty==16'hffff)begin
+	if(ps_empty==PARSER_ALLONE & ram_empty==16'hffff & tf_empty)begin
 		all_empty<=1'b1;
 	end else begin
 		all_empty<=1'b0;
@@ -36,13 +36,16 @@ always@(posedge clk)begin
 		page_input_finish_flag<=1'b1;
 	end
 	
-	all_empty_delay[5:1] 	<=all_empty_delay[4:0];
+	all_empty_delay[15:1] 	<=all_empty_delay[14:0];
 	all_empty_delay[0] 		<=all_empty;
 end
 
 reg[2:0] state;
 reg page_finish_r,block_finish_r;
 always@(posedge clk)begin
+	if(~rst_n)begin
+		state <= 3'd0;
+	end else
 	case(state)
 	3'd0:begin
 		page_finish_r<=1'b0;
@@ -54,9 +57,9 @@ always@(posedge clk)begin
 	3'd1:begin //idle case
 		page_finish_r<=1'b0;
 		block_finish_r<=1'b0;
-/*		if(ps_finish!=0)begin
-			state<=3'd2;
-		end else */if(page_input_finish & tf_empty)begin
+		
+		/*if all the data in this file has been preparsed and token fifo is empty, which means all data is in parsers or later stages, go to next state*/
+		if(page_input_finish & tf_empty)begin
 			state<=3'd3;
 		end
 	end
@@ -68,7 +71,7 @@ always@(posedge clk)begin
 	end
 	*/
 	3'd3:begin //wait for the page clean finished 
-			if(all_empty_delay==6'b1111_11 & all_empty==1'b1 & tf_empty)begin
+			if(all_empty_delay==16'hffff & all_empty==1'b1 & tf_empty)begin
 				page_finish_r<=1'b1;
 			end
 			else if(cl_finish)begin

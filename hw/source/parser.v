@@ -66,7 +66,7 @@ reg[2:0] garbage_buff;
 reg[2:0] state;
 reg valid_fsm;
 reg[4:0] length_left;  		//the length left
-reg page_req;             //set to high if current page is finished
+reg slice_req;             //set to high if current slice is finished
 reg overflow_record;	//if address_in[16] is different from this bit, overflow happens
 reg block_finish_r;		
 /////to parser_lit
@@ -135,7 +135,7 @@ always@(posedge clk)begin
 	case(state)
 	3'd0:begin   ///idle state
 		state			<= 3'b1;
-		page_req		<= 1'b1;
+		slice_req		<= 1'b1;
 		block_finish_r	<= 1'b0;
 		///set the output to sub parsers to invalid
 		lit_valid		<= 1'b0;
@@ -150,7 +150,7 @@ always@(posedge clk)begin
 			address_buff	<= address_in;
 			
 			length_left		<= 5'd16 - {2'b0,garbage_in};
-			page_req		<= 1'b0;
+			slice_req		<= 1'b0;
 			garbage_buff	<= garbage_in;
 			
 			if(address_in[16]^overflow_record)begin
@@ -189,7 +189,7 @@ always@(posedge clk)begin
 			block_finish_r	<=1'b1;
 		end else if(lza_a==1'b0)begin
 			state			<=3'd1;
-			page_req		<=1'b1;
+			slice_req		<=1'b1;
 		end
 		
 		address_buff	<=address_buff_w;
@@ -376,7 +376,7 @@ always@(posedge clk)begin
 			copy_length<=copy_length_record;
 			if(empty_flag)begin
 				state			<=3'd1;
-				page_req		<=1'b1;
+				slice_req		<=1'b1;
 			end else begin
 				state			<=3'd2;
 			end
@@ -582,10 +582,11 @@ endgenerate
 /////////////////////////////////////////
 reg all_empty_reg;
 always@(posedge clk)begin
-	all_empty_reg	<=(copy_fifo_empty==16'hffff) & (lit_fifo_empty==4'hf);
+	/*if all FIFOs are empty and no slice inside, it is empty*/
+	all_empty_reg	<=(copy_fifo_empty==16'hffff) & (lit_fifo_empty==4'hf) & slice_req;
 end
 
-assign ready	=page_req;
+assign ready	=slice_req;
 assign all_empty=all_empty_reg;
 assign block_finish=block_finish_r;
 
