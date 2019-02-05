@@ -351,7 +351,8 @@ always@(posedge clk)begin
 		if(block_out_finish)begin
 		
 			if(length_left	==5'b0)begin
-				state	<=3'd1;
+				state		<=3'd1;
+				slice_req	<=1'b1;
 			end else begin
 			//if this slice is not totally processed, go back to state2 to continue
 				state	<=3'd2;
