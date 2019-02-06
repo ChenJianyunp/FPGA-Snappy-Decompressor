@@ -91,8 +91,14 @@ always@(posedge clk)begin
 	end
 	3'd1:begin  //read
 		block_out_finish_r<=1'b0;
-		rd_address	<=rd_address_w;
-		rd_valid	<=1'b1;
+		
+		if(rd_address!=max_address)begin//increment the address until the max_address
+			rd_address	<= rd_address_w;
+			rd_valid	<= 1'b1;
+		end else begin
+			rd_valid	<= 1'b0;
+		end
+		
 		if((rd_address[9:0]==10'd1022) & valid_lower & ready)begin
 			state<=3'd2;
 		end else if((rd_address==max_address) & page_finish & ready)begin //whether output all the data in page
