@@ -245,9 +245,9 @@ assign block_out_finish=block_out_finish_buff_r2;
 
 assign page_out_finish=page_out_finish_buff_r;
 assign cl_finish=cl_finish_flag;
-assign data_o		=rd_address[0]?data_upper:data_lower;
-assign byte_valid_o	=(~64'b0);
-assign valid_o		=((rd_address[0]?valid_upper:valid_lower)&rd_valid)| final_valid;
-assign last			=valid_o & (final_valid |last_r);
+assign data_o       =rd_address[0]?data_upper:data_lower;
+assign byte_valid_o =(~64'b0);
+assign valid_o      =((rd_address[0]?valid_upper:valid_lower)&rd_valid)| final_valid;
+assign last         =valid_o & (final_valid |last_r);
 
 endmodule

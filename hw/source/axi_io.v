@@ -20,6 +20,19 @@ module axi_io
     output done,
     output idle,
     output ready,
+
+    output after_done_o,
+    output after_all_wr_ack_o,
+    output after_rd_done_o,
+    output after_first_wr_ack_o,
+    output after_wr_data_sent_o,
+    output after_first_wr_rqt_ack_o,
+    output after_first_wr_rqt_o,
+    output after_first_rd_rqt_ack_o,
+    output after_first_rd_rqt_o,
+    output after_start_o,
+    output after_first_wr_ready_o,
+    output after_first_wr_valid_o,
     
     input[C_M_AXI_ADDR_WIDTH-1:0] src_addr,  //address to read from host memory
     input[C_M_AXI_ADDR_WIDTH-1:0] des_addr, ///address to write result to host memory
@@ -80,6 +93,9 @@ decompressor d0(
     .wr_ready(dma_wr_ready),
 
     .data_fifo_almostfull(dec_almostfull),
+    .after_wr_data_sent_o(after_wr_data_sent_o),
+    .after_first_wr_ready_o(after_first_wr_ready_o),
+    .after_first_wr_valid_o(after_first_wr_valid_o),
     
     .done(done_decompressor),
     .last(dma_wr_data_last),
@@ -101,6 +117,14 @@ io_control io_control0(
     .ready(ready),
     .rd_address(dma_rd_addr),
     .done_out(done_control),
+
+    .after_all_wr_ack_o(after_all_wr_ack_o),
+    .after_rd_done_o(after_rd_done_o),
+    .after_first_wr_ack_o(after_first_wr_ack_o),
+    .after_first_wr_rqt_ack_o(after_first_wr_rqt_ack_o),
+    .after_first_wr_rqt_o(after_first_wr_rqt_o),
+    .after_first_rd_rqt_ack_o(after_first_rd_rqt_ack_o),
+    .after_first_rd_rqt_o(after_first_rd_rqt_o),
     
     .wr_valid(dma_wr_wvalid),
     .wr_ready(dma_wr_ready),
@@ -116,7 +140,22 @@ io_control io_control0(
     .compression_length({3'b0,compression_length})
 
 );
+
+reg after_start_r;
+
+always@(posedge clk)begin
+    if(~rst_n)begin
+        after_start_r   <= 1'b0;
+    end else if(start)begin
+        after_start_r   <= 1'b1;
+    end
+end
+
+assign after_start_o    = after_start_r;
+
+
 assign dma_rd_data_taken    = ~dec_almostfull;
-assign done                    = done_decompressor && done_control;
+assign done                 = done_decompressor && done_control;
+assign after_done_o         = done;
 
 endmodule 

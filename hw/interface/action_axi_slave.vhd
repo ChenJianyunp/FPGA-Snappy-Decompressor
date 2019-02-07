@@ -51,6 +51,30 @@ entity action_axi_slave is
                 app_done_i      : in  std_logic;
                 app_ready_i     : in  std_logic;
                 app_idle_i      : in  std_logic;
+
+                after_done_i                : in  std_logic;
+                after_all_wr_ack_i          : in  std_logic;
+                after_rd_done_i             : in  std_logic;
+                after_first_wr_ack_i        : in  std_logic;
+                after_wr_data_sent_i        : in  std_logic;
+                after_first_wr_rqt_ack_i    : in  std_logic;
+                after_first_wr_rqt_i        : in  std_logic;
+                after_first_rd_rqt_ack_i    : in  std_logic;
+                after_first_rd_rqt_i        : in  std_logic;
+                after_start_i               : in  std_logic;
+                after_first_wr_ready_i      : in  std_logic;
+                after_first_wr_valid_i      : in  std_logic;
+
+        -- Registers from 0x60 to 0x7c are reserved for the debug in this application 
+
+                --reg_0x60_i      : in std_logic_vector(31 downto 0);
+                --reg_0x64_i      : in std_logic_vector(31 downto 0);
+                --reg_0x68_i      : in std_logic_vector(31 downto 0);
+                --reg_0x6c_i      : in std_logic_vector(31 downto 0);
+                --reg_0x70_i      : in std_logic_vector(31 downto 0);
+                --reg_0x74_i      : in std_logic_vector(31 downto 0);
+                --reg_0x78_i      : in std_logic_vector(31 downto 0);
+                --reg_0x7c_i      : in std_logic_vector(31 downto 0);
                
                 
 		-- User ports ends
@@ -145,32 +169,55 @@ architecture action_axi_slave of action_axi_slave is
 	--------------------------------------------------
 	---- Number of Slave Registers 16
 	signal slv_reg0	        : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg0_new	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg0_new     : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
 	signal slv_reg1         : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
 	signal slv_reg2         : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
 	signal slv_reg3         : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
 	signal slv_reg8         : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg12	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg13	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg14	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg15	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg16	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg17	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg18	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg19	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal slv_reg_rden	: std_logic;
-	signal slv_reg_wren	: std_logic;
-	signal reg_data_out	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
-	signal byte_index	: integer;
-        signal idle_q           : std_logic;
-        signal app_start_q      : std_logic;
-        signal app_done_q       : std_logic;
-        signal slv_reg0_bit0_q  : std_logic;
+	signal slv_reg12	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg13	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg14	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg15	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg16	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg17	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg18	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg19	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg_rden	    : std_logic;
+	signal slv_reg_wren	    : std_logic;
+	signal reg_data_out	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal byte_index	    : integer;
+    
+    signal idle_q           : std_logic;
+    signal app_start_q      : std_logic;
+    signal app_done_q       : std_logic;
+    signal slv_reg0_bit0_q  : std_logic;
+
+-- for debugging only
+	signal slv_reg24	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg25	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg26	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg27	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg28	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg29	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg30	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal slv_reg31	    : std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
+	signal after_done_q             : std_logic;
+	signal after_all_wr_ack_q       : std_logic;
+	signal after_rd_done_q          : std_logic;
+	signal after_first_wr_ack_q     : std_logic;
+	signal after_wr_data_sent_q     : std_logic;
+	signal after_first_wr_rqt_ack_q : std_logic;
+	signal after_first_wr_rqt_q     : std_logic;
+	signal after_first_rd_rqt_ack_q : std_logic;
+	signal after_first_rd_rqt_q     : std_logic;
+	signal after_start_q            : std_logic;
+    signal after_first_wr_ready_q   : std_logic;
+    signal after_first_wr_valid_q   : std_logic;
 
 begin
 	-- I/O Connections assignments
 
-        int_enable_o    <= slv_reg1(0);
+    int_enable_o    <= slv_reg1(0);
 	S_AXI_AWREADY	<= axi_awready;
 	S_AXI_WREADY	<= axi_wready;
 	S_AXI_BRESP	<= axi_bresp;
@@ -520,11 +567,78 @@ begin
 	      when b"10010" =>                  
 	        reg_data_out <= slv_reg18;     -- 0x48
 	      when b"10011" =>                  
-	        reg_data_out <= slv_reg19;     -- 0x4c                                                 
+	        reg_data_out <= slv_reg19;     -- 0x4c
+          -- the following registers are read-only for debugging in this application
+          when b"11000" =>
+            reg_data_out <= slv_reg24;     -- 0x60
+          when b"11001" =>
+            reg_data_out <= slv_reg25;     -- 0x64
+          when b"11010" =>
+            reg_data_out <= slv_reg26;     -- 0x68
+          when b"11011" =>
+            reg_data_out <= slv_reg27;     -- 0x6c
+          when b"11100" =>
+            reg_data_out <= slv_reg28;     -- 0x70
+          when b"11101" =>
+            reg_data_out <= slv_reg29;     -- 0x74
+          when b"11110" =>
+            reg_data_out <= slv_reg30;     -- 0x78
+          when b"11111" =>
+            reg_data_out <= slv_reg31;     -- 0x7c
+
 	      when others =>
 	        reg_data_out  <= (others => '0');
 	    end case;
-	end process; 
+	end process;
+
+    -- Debugging Register
+--    slv_reg24 <= (others=>'0');
+    slv_reg25 <= (others=>'0');
+    slv_reg26 <= (others=>'0');
+    slv_reg27 <= (others=>'0');
+    slv_reg28 <= (others=>'0');
+    slv_reg29 <= (others=>'0');
+    slv_reg30 <= (others=>'0');
+    slv_reg31 <= (others=>'0');
+
+    -- after_done_q & after_all_wr_ack_q & after_rd_done_q & after_first_wr_ack_q
+    -- after_wr_data_sent_q & after_first_wr_ready_q & after_first_wr_valid_q & after_first_wr_rqt_ack_q 
+    -- after_first_wr_rqt_q & after_first_rd_rqt_ack_q & after_first_rd_rqt_q & after_start_q 
+    -- app_ready_i & idle_q & app_done_q & app_start_q;
+    slv_reg24 <= slv_reg25(31 downto 16) & after_done_q & after_all_wr_ack_q & after_rd_done_q & after_first_wr_ack_q & after_wr_data_sent_q & after_first_wr_ready_q & after_first_wr_valid_q & after_first_wr_rqt_ack_q & after_first_wr_rqt_q & after_first_rd_rqt_ack_q & after_first_rd_rqt_q & after_start_q & app_ready_i & idle_q & app_done_q & app_start_q;
+
+	process( S_AXI_ACLK ) is
+	begin
+	  if (rising_edge (S_AXI_ACLK)) then
+	    if ( S_AXI_ARESETN = '0' ) then
+            after_done_q                <= '0';
+            after_all_wr_ack_q          <= '0';
+            after_rd_done_q             <= '0';
+            after_first_wr_ack_q        <= '0';
+            after_wr_data_sent_q        <= '0';
+            after_first_wr_rqt_ack_q    <= '0';
+            after_first_wr_rqt_q        <= '0';
+            after_first_rd_rqt_ack_q    <= '0';
+            after_first_rd_rqt_q        <= '0';
+            after_start_q               <= '0';
+            after_first_wr_ready_q      <= '0';
+            after_first_wr_valid_q      <= '0';
+	    else
+            after_done_q                <= after_done_i;
+            after_all_wr_ack_q          <= after_all_wr_ack_i;
+            after_rd_done_q             <= after_rd_done_i;
+            after_first_wr_ack_q        <= after_first_wr_ack_i;
+            after_wr_data_sent_q        <= after_wr_data_sent_i;
+            after_first_wr_rqt_ack_q    <= after_first_wr_rqt_ack_i;
+            after_first_wr_rqt_q        <= after_first_wr_rqt_i;
+            after_first_rd_rqt_ack_q    <= after_first_rd_rqt_ack_i;
+            after_first_rd_rqt_q        <= after_first_rd_rqt_i;
+            after_start_q               <= after_start_i;
+            after_first_wr_ready_q      <= after_first_wr_ready_i;
+            after_first_wr_valid_q      <= after_first_wr_valid_i;
+	    end if;
+	  end if;
+	end process;
 
 	-- Output register or memory read data
 	process( S_AXI_ACLK ) is

@@ -34,6 +34,14 @@ module io_control(
     output ready,
     output done_out,
 
+    output after_all_wr_ack_o,
+    output after_rd_done_o,
+    output after_first_wr_ack_o,
+    output after_first_wr_rqt_ack_o,
+    output after_first_wr_rqt_o,
+    output after_first_rd_rqt_ack_o,
+    output after_first_rd_rqt_o,
+
     input[31:0] decompression_length,
     input[34:0] compression_length
 );
@@ -46,11 +54,23 @@ reg rd_req_r;
 reg[2:0] rd_state;
 reg read_done_r;
 
+reg after_all_wr_ack_r;
+reg after_rd_done_r;
+reg after_first_wr_ack_r;
+reg after_first_wr_rqt_ack_r;
+reg after_first_wr_rqt_r;
+reg after_first_rd_rqt_ack_r;
+reg after_first_rd_rqt_r;
+
 always@(posedge clk)begin
     if(~rst_n)begin
         rd_req_r        <= 1'b0;
         rd_state        <= 3'd0;
         read_done_r     <= 1'b0;
+
+        after_first_rd_rqt_r            <= 1'b0;
+        after_first_rd_rqt_ack_r        <= 1'b0;
+        after_rd_done_r                 <= 1'b0;
     end else case(rd_state)
         3'd0:begin
             if(start)begin
@@ -78,11 +98,13 @@ always@(posedge clk)begin
                 rd_state                    <= 3'd2;
             end
             rd_req_r                <= 1'b1;
+            after_first_rd_rqt_r    <= 1'b1;
         end
         3'd2:begin//the state to read the the block
             //once get an acknowlege, read the next chunk
             if(rd_req_ack)begin
                 rd_address_r                    <= rd_address_r+64'd4096;
+                after_first_rd_rqt_ack_r        <= 1'b1;
                 if(compression_length_r[34:6]<=29'd64)begin
                     rd_state                    <= 3'd3;
                     rd_len_r                    <= {2'd0,compression_length_r[11:6]-6'd1};
@@ -97,11 +119,13 @@ always@(posedge clk)begin
             if(rd_req_ack)begin
                 rd_req_r                <= 1'b0;
                 rd_state                <= 3'd4;
+                after_first_rd_rqt_ack_r<= 1'b1;
             end
         end
         3'd4:begin
-            read_done_r        <= 1'b1;
-            rd_state        <= 3'd0;
+            read_done_r         <= 1'b1;
+            after_rd_done_r     <= 1'b1;
+            rd_state            <= 3'd0;
         end
 
         default:rd_state    <= 3'd0;
@@ -121,7 +145,11 @@ always@(posedge clk)begin
         wr_state        <= 3'd0;
         wr_req_r        <= 1'b0;
         wr_req_count    <= 64'b0;
-        done_out_r        <= 1'b0;
+        done_out_r      <= 1'b0;
+
+        after_first_wr_rqt_ack_r    <= 1'b0;
+        after_first_wr_rqt_r        <= 1'b0;
+        after_all_wr_ack_r          <= 1'b0;
     end else case(wr_state)
         3'd0:begin                // initial state
             if(start)begin
@@ -148,9 +176,11 @@ always@(posedge clk)begin
                 wr_state                        <= 3'd2;
             end
             wr_req_r    <= 1'b1;
+            after_first_wr_rqt_r        <= 1'b1;
         end
         3'd2:begin                // state for sending the rest 4K blocks
             if(wr_req_ack)begin
+                after_first_wr_rqt_ack_r    <= 1'b1;
                 wr_req_count    <= wr_req_count+64'b1;
                 wr_address_r    <= wr_address_r+64'd4096;
                 if(decompression_length_r[31:6]<=26'd64)begin
@@ -165,6 +195,7 @@ always@(posedge clk)begin
         end
         3'd3:begin                // state for waiting the last wr_req_r is acknolodged
             if(wr_req_ack)begin
+                after_first_wr_rqt_ack_r    <= 1'b1;
                 wr_req_count    <= wr_req_count+64'b1;
                 wr_req_r        <= 1'b0;
                 wr_state        <= 3'd4;
@@ -175,6 +206,7 @@ always@(posedge clk)begin
             if(wr_done_count==wr_req_count && read_done_r) begin    //write request ack count equal to write data ack count and the read is done
                 done_out_r  <= 1'b1;
                 wr_state    <= 3'd0;
+                after_all_wr_ack_r          <= 1'b1;
             end
         end
 
@@ -197,6 +229,18 @@ begin
     else if(bresp)
     begin
         wr_done_count    <=wr_done_count+64'b1;
+    end
+end
+
+always@(posedge clk)
+begin
+    if(~rst_n)
+    begin
+        after_first_wr_ack_r    <= 1'b0;
+    end
+    else if(bresp)
+    begin
+        after_first_wr_ack_r    <= 1'b1;
     end
 end
 
@@ -236,5 +280,13 @@ assign wr_len       = wr_len_r;
 assign bready       = bready_r;
 
 assign done_out     = done_out_r;
+
+assign after_all_wr_ack_o           = after_all_wr_ack_r;
+assign after_rd_done_o              = after_rd_done_r;
+assign after_first_wr_ack_o         = after_first_wr_ack_r;
+assign after_first_wr_rqt_ack_o     = after_first_wr_rqt_ack_r;
+assign after_first_wr_rqt_o         = after_first_wr_rqt_r;
+assign after_first_rd_rqt_ack_o     = after_first_rd_rqt_ack_r;
+assign after_first_rd_rqt_o         = after_first_rd_rqt_r;
 
 endmodule

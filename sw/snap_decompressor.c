@@ -99,21 +99,22 @@ static void action_write(struct snap_card* h, uint32_t addr, uint32_t data)
 
 
 /*
- *  an complete function alternative
- *  same as action_action_completed but more MMIO info feedback
+ *  my complete function
+ *  same as action_action_completed but more MMIO info back
 */
 static int snap_action_completed_withMMIO(struct snap_action *action, int *rc, int timeout)
 {
-    // More MMIO read can be done in this function
-
 	int _rc = 0;
 	uint32_t action_data = 0;
+    uint32_t action_state = 0;
 	struct snap_card *card = (struct snap_card *)action;
 	unsigned long t0;
 	int dt, timeout_us;
 
 	uint32_t rc2=0;
-	int counter=0;
+	uint32_t rc3=0;
+	int counter1=0;
+	int counter2=0;
 
 	/* Busy poll timout sec */
 	t0 = get_usec();
@@ -121,17 +122,19 @@ static int snap_action_completed_withMMIO(struct snap_action *action, int *rc, i
 	timeout_us = timeout * 1000 * 1000;
 	while (dt < timeout_us) {
 		_rc = snap_mmio_read32(card, ACTION_CONTROL, &action_data);
+		snap_mmio_read32(card, 0x60, &action_state);
 
 		if(rc2!=action_data) {
-			counter ++;
-			printf("State %d -- (Register Code): %d\n",counter,action_data);
+			counter1 ++;
+			printf("AFU State %d -- (Register Code): %d\n",counter1,action_data);
 			rc2=action_data;
 		}
 
-        /*  TODO:
-         *  1. add more MMIO read if needed
-         *  2. #define
-        */
+		if(rc3!=action_state) {
+			counter2 ++;
+			printf("SNAPPY State %d -- (State Code): %d\n",counter2,action_state);
+			rc3=action_state;
+		}
 
 		if ((action_data & ACTION_CONTROL_IDLE) == ACTION_CONTROL_IDLE)
 			break;
@@ -159,7 +162,6 @@ static int action_wait_idle(struct snap_card* h, int timeout, uint64_t *elapsed)
 
     /* Wait for Action to go back to Idle */
     t_start = get_usec();
-//    rc = snap_action_completed((void*)h, NULL, timeout);
     rc = snap_action_completed_withMMIO((void*)h, NULL, timeout);
     if (rc) rc = 0;   /* Good */
     else rc = ETIME;  /* Timeout */
@@ -355,7 +357,7 @@ static void usage(const char *prog)
 
 static void printVersion()
 {
-	const char date_version[128] = "Decompressor 2019-02-01-v001";
+	const char date_version[128] = "Decompressor 2019-02-06-v001";
 	printf("**************************************************************\n");  // 58 *
 	printf("**     App Version: %-*s**\n", 40, date_version);                    // 18 chars, need 40 more
 	printf("**************************************************************\n\n");
@@ -406,7 +408,7 @@ int main(int argc, char *argv[])
             { "skip",     no_argument,       NULL, 'S' },
             { 0,          no_argument,       NULL, 0   },
         };
-        cmd = getopt_long(argc, argv, "C:s:e:i:o:B:A:t:IvVh",
+        cmd = getopt_long(argc, argv, "C:s:e:i:o:B:A:t:SIvVh",
             long_options, &option_index);
         if (cmd == -1)  /* all params processed ? */
             break;

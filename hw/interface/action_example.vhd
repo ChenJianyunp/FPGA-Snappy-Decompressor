@@ -161,6 +161,19 @@ architecture action_example of action_example is
         signal counter          : std_logic_vector( 7 downto 0);
         signal counter_q        : std_logic_vector(31 downto 0);
 
+        signal after_done             : std_logic;
+        signal after_all_wr_ack       : std_logic;
+        signal after_rd_done          : std_logic;
+        signal after_first_wr_ack     : std_logic;
+        signal after_wr_data_sent     : std_logic;
+        signal after_first_wr_rqt_ack : std_logic;
+        signal after_first_wr_rqt     : std_logic;
+        signal after_first_rd_rqt_ack : std_logic;
+        signal after_first_rd_rqt     : std_logic;
+        signal after_start            : std_logic;
+        signal after_first_wr_ready   : std_logic;
+        signal after_first_wr_valid   : std_logic;
+
 
         signal dma_rd_req        : std_logic;
         signal dma_rd_req_ack    : std_logic;
@@ -256,6 +269,20 @@ architecture action_example of action_example is
 			des_addr:	in std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
 			compression_length:	in std_logic_vector(31 downto 0);
 			decompression_length: in std_logic_vector(31 downto 0);
+-- port for debugging
+            after_done_o                : out std_logic;
+            after_all_wr_ack_o          : out std_logic;
+            after_rd_done_o             : out std_logic;
+            after_first_wr_ack_o        : out std_logic;
+            after_wr_data_sent_o        : out std_logic;
+            after_first_wr_rqt_ack_o    : out std_logic;
+            after_first_wr_rqt_o        : out std_logic;
+            after_first_rd_rqt_ack_o    : out std_logic;
+            after_first_rd_rqt_o        : out std_logic;
+            after_start_o               : out std_logic;
+            after_first_wr_ready_o      : out std_logic;
+            after_first_wr_valid_o      : out std_logic;
+
 --ports to read data from host memory
 			dma_rd_req:	out std_logic;
 			dma_rd_addr:out std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
@@ -316,6 +343,19 @@ action_axi_slave_inst : entity work.action_axi_slave
         app_done_i      => app_done,
         app_ready_i     => app_ready,
         app_idle_i      => app_idle,
+        -- for debugging only
+        after_done_i                => after_done,
+        after_all_wr_ack_i          => after_all_wr_ack,
+        after_rd_done_i             => after_rd_done,
+        after_first_wr_ack_i        => after_first_wr_ack,
+        after_wr_data_sent_i        => after_wr_data_sent,
+        after_first_wr_rqt_ack_i    => after_first_wr_rqt_ack,
+        after_first_wr_rqt_i        => after_first_wr_rqt,
+        after_first_rd_rqt_ack_i    => after_first_rd_rqt_ack,
+        after_first_rd_rqt_i        => after_first_rd_rqt,
+        after_start_i               => after_start,
+        after_first_wr_ready_i      => after_first_wr_ready,
+        after_first_wr_valid_i      => after_first_wr_valid,
         -- User ports ends
         S_AXI_ACLK  => action_clk,
         S_AXI_ARESETN   => action_rst_n,
@@ -438,6 +478,19 @@ axi_io0: axi_io
 		done				=>app_done,
 		idle				=>app_idle,
 		ready				=>app_ready,
+--
+        after_done_o                => after_done,
+        after_all_wr_ack_o          => after_all_wr_ack,
+        after_rd_done_o             => after_rd_done,
+        after_first_wr_ack_o        => after_first_wr_ack,
+        after_wr_data_sent_o        => after_wr_data_sent,
+        after_first_wr_rqt_ack_o    => after_first_wr_rqt_ack,
+        after_first_wr_rqt_o        => after_first_wr_rqt,
+        after_first_rd_rqt_ack_o    => after_first_rd_rqt_ack,
+        after_first_rd_rqt_o        => after_first_rd_rqt,
+        after_start_o               => after_start,
+        after_first_wr_ready_o      => after_first_wr_ready,
+        after_first_wr_valid_o      => after_first_wr_valid,
 		
 		src_addr			=>(reg_0x38&reg_0x34),
 		des_addr			=>(reg_0x40&reg_0x3c),

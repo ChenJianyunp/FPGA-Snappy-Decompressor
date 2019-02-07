@@ -17,6 +17,10 @@ module decompressor(
 	input wr_ready,
 
 	output data_fifo_almostfull,
+
+    output after_wr_data_sent_o,
+    output after_first_wr_ready_o,
+    output after_first_wr_valid_o,
 	
 	output done,
 	output last,///whether it is the last 64B of a burst
@@ -311,6 +315,36 @@ data_out data_out0(
 	.valid_o(valid_out)
 
 );
+
+
+/****************************************
+for debugging only
+*****************************************/
+reg after_wr_data_sent_r;
+reg after_first_wr_ready_r;
+reg after_first_wr_valid_r;
+
+always@(posedge clk) begin
+    if(~rst_n)begin
+        after_wr_data_sent_r    <= 1'b0;
+        after_first_wr_ready_r  <= 1'b0;
+        after_first_wr_valid_r  <= 1'b0;
+    end else begin
+        if(valid_out) begin
+            after_first_wr_valid_r  <= 1'b1;
+        end
+        if(wr_ready) begin
+            after_first_wr_ready_r  <= 1'b1;
+        end
+        if(valid_out && wr_ready) begin
+            after_wr_data_sent_r    <= 1'b1;
+        end
+    end
+end
+
+assign after_wr_data_sent_o    = after_wr_data_sent_r;
+assign after_first_wr_ready_o  = after_first_wr_ready_r;
+assign after_first_wr_valid_o  = after_first_wr_valid_r;
 
 /****************************************
 generate module for lit_selector, copytoken_selector, block ram and copy_selector blocks
