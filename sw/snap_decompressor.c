@@ -106,15 +106,25 @@ static int snap_action_completed_withMMIO(struct snap_action *action, int *rc, i
 {
 	int _rc = 0;
 	uint32_t action_data = 0;
-    uint32_t action_state = 0;
+    uint32_t action_state2 = 0;
+    uint32_t action_state3 = 0;
+    uint32_t action_state4 = 0;
+    uint32_t action_state5 = 0; 
 	struct snap_card *card = (struct snap_card *)action;
 	unsigned long t0;
 	int dt, timeout_us;
 
+	uint32_t rc1=0;
 	uint32_t rc2=0;
 	uint32_t rc3=0;
+	uint32_t rc4=0;
+	uint32_t rc5=0;
+
 	int counter1=0;
 	int counter2=0;
+	int counter3=0;
+	int counter4=0;
+	int counter5=0;
 
 	/* Busy poll timout sec */
 	t0 = get_usec();
@@ -122,18 +132,39 @@ static int snap_action_completed_withMMIO(struct snap_action *action, int *rc, i
 	timeout_us = timeout * 1000 * 1000;
 	while (dt < timeout_us) {
 		_rc = snap_mmio_read32(card, ACTION_CONTROL, &action_data);
-		snap_mmio_read32(card, 0x60, &action_state);
+		snap_mmio_read32(card, 0x60, &action_state2);
+        snap_mmio_read32(card, 0x64, &action_state3);
+        snap_mmio_read32(card, 0x68, &action_state4);
+        snap_mmio_read32(card, 0x6c, &action_state5);
 
-		if(rc2!=action_data) {
+		if(rc1!=action_data) {
 			counter1 ++;
 			printf("AFU State %d -- (Register Code): %d\n",counter1,action_data);
-			rc2=action_data;
+			rc1=action_data;
 		}
 
-		if(rc3!=action_state) {
+		if(rc2!=action_state2) {
 			counter2 ++;
-			printf("SNAPPY State %d -- (State Code): %d\n",counter2,action_state);
-			rc3=action_state;
+			printf("SNAPPY State %d -- (State Code): %d\n",counter2,action_state2);
+			rc2=action_state2;
+		}
+
+		if(rc3!=action_state3) {
+			counter3 ++;
+			printf("SNAPPY State %d -- (Data_out_valid): %d\n",counter3,action_state3);
+			rc3=action_state3;
+		}
+
+		if(rc4!=action_state4) {
+			counter4 ++;
+			printf("SNAPPY State %d -- (Byte_out_valid1): %d\n",counter4,action_state4);
+			rc4=action_state4;
+		}
+
+		if(rc5!=action_state5) {
+			counter5 ++;
+			printf("SNAPPY State %d -- (Byte_out_valid2): %d\n",counter5,action_state5);
+			rc5=action_state5;
 		}
 
 		if ((action_data & ACTION_CONTROL_IDLE) == ACTION_CONTROL_IDLE)
@@ -357,7 +388,7 @@ static void usage(const char *prog)
 
 static void printVersion()
 {
-	const char date_version[128] = "Decompressor 2019-02-06-v001";
+	const char date_version[128] = "Decompressor 2019-02-07-v001";
 	printf("**************************************************************\n");  // 58 *
 	printf("**     App Version: %-*s**\n", 40, date_version);                    // 18 chars, need 40 more
 	printf("**************************************************************\n\n");

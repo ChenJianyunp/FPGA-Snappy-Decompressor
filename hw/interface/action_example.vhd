@@ -173,6 +173,16 @@ architecture action_example of action_example is
         signal after_start            : std_logic;
         signal after_first_wr_ready   : std_logic;
         signal after_first_wr_valid   : std_logic;
+        signal preparser_state        : std_logic_vector(3 downto 0);
+        signal after_first_rd_ready   : std_logic;
+        signal after_first_rd_valid   : std_logic;
+        signal after_first_data_read  : std_logic;
+        signal after_df_valid         : std_logic;
+        signal after_preparser_valid  : std_logic;
+        signal after_queue_token_valid: std_logic;
+        signal after_distributor_valid: std_logic;
+        signal data_out_valid_in      : std_logic_vector(15 downto 0);
+        signal byte_valid_out         : std_logic_vector(63 downto 0);
 
 
         signal dma_rd_req        : std_logic;
@@ -282,6 +292,16 @@ architecture action_example of action_example is
             after_start_o               : out std_logic;
             after_first_wr_ready_o      : out std_logic;
             after_first_wr_valid_o      : out std_logic;
+            preparser_state_out_o       : out std_logic_vector(3 downto 0);
+            after_first_rd_ready_o      : out std_logic;
+            after_first_rd_valid_o      : out std_logic;
+            after_first_data_read_o     : out std_logic;
+            after_df_valid_o            : out std_logic;
+            after_preparser_valid_o     : out std_logic;
+            after_queue_token_valid_o   : out std_logic;
+            after_distributor_valid_o   : out std_logic;
+            data_out_valid_in_o         : out std_logic_vector(15 downto 0);
+            byte_valid_out_o            : out std_logic_vector(63 downto 0);
 
 --ports to read data from host memory
 			dma_rd_req:	out std_logic;
@@ -356,6 +376,16 @@ action_axi_slave_inst : entity work.action_axi_slave
         after_start_i               => after_start,
         after_first_wr_ready_i      => after_first_wr_ready,
         after_first_wr_valid_i      => after_first_wr_valid,
+        preparser_state_i           => preparser_state,
+        after_first_rd_ready_i      => after_first_rd_ready,
+        after_first_rd_valid_i      => after_first_rd_valid,
+        after_first_data_read_i     => after_first_data_read,
+        after_df_valid_i            => after_df_valid,
+        after_preparser_valid_i     => after_preparser_valid,
+        after_queue_token_valid_i   => after_queue_token_valid,
+        after_distributor_valid_i   => after_distributor_valid,
+        data_out_valid_in_i         => data_out_valid_in,
+        byte_valid_out_i            => byte_valid_out,
         -- User ports ends
         S_AXI_ACLK  => action_clk,
         S_AXI_ARESETN   => action_rst_n,
@@ -491,6 +521,16 @@ axi_io0: axi_io
         after_start_o               => after_start,
         after_first_wr_ready_o      => after_first_wr_ready,
         after_first_wr_valid_o      => after_first_wr_valid,
+        preparser_state_out_o       => preparser_state,
+        after_first_rd_ready_o      => after_first_rd_ready,
+        after_first_rd_valid_o      => after_first_rd_valid,
+        after_first_data_read_o     => after_first_data_read,
+        after_df_valid_o            => after_df_valid,
+        after_preparser_valid_o     => after_preparser_valid,
+        after_queue_token_valid_o   => after_queue_token_valid,
+        after_distributor_valid_o   => after_distributor_valid,
+        data_out_valid_in_o         => data_out_valid_in,
+        byte_valid_out_o            => byte_valid_out,
 		
 		src_addr			=>(reg_0x38&reg_0x34),
 		des_addr			=>(reg_0x40&reg_0x3c),

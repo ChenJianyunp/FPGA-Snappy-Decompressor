@@ -21,6 +21,14 @@ module decompressor(
     output after_wr_data_sent_o,
     output after_first_wr_ready_o,
     output after_first_wr_valid_o,
+    output[3:0] preparser_state_out_o,
+    output after_df_valid_o,
+    output after_preparser_valid_o,
+    output after_queue_token_valid_o,
+    output after_distributor_valid_o,
+    output[15:0] data_out_valid_in_o,
+    output[63:0] byte_valid_out_o,
+
 	
 	output done,
 	output last,///whether it is the last 64B of a burst
@@ -63,6 +71,7 @@ data_fifo df0(
 	.wr_rst_busy(),
 	.rd_rst_busy()
 );
+
 
 ///////////preparser
 wire[143:0] pre_dout;   //18 bytes
@@ -168,7 +177,6 @@ distributor
 	.rdreq(dis_rdreq),
 	.valid_out(dis_validout)
 );
-
 
 
 //////generate parsers
@@ -324,6 +332,7 @@ reg after_wr_data_sent_r;
 reg after_first_wr_ready_r;
 reg after_first_wr_valid_r;
 
+
 always@(posedge clk) begin
     if(~rst_n)begin
         after_wr_data_sent_r    <= 1'b0;
@@ -342,9 +351,49 @@ always@(posedge clk) begin
     end
 end
 
+reg after_df_valid_r;
+reg after_preparser_valid_r;
+reg after_queue_token_valid_r;
+reg after_distributor_valid_r;
+reg[15:0] data_out_valid_in_r;
+reg[63:0] byte_valid_out_r;
+
+always@(posedge clk) begin
+    if(~rst_n)begin
+        data_out_valid_in_r         <= 16'b0;
+        byte_valid_out_r            <= 64'b0;
+        after_df_valid_r            <= 1'b0;
+        after_preparser_valid_r     <= 1'b0;
+        after_queue_token_valid_r   <= 1'b0;
+        after_distributor_valid_r   <= 1'b0;
+    end else begin
+        data_out_valid_in_r     <= dout_valid_wr_in;
+        byte_valid_out_r        <= byte_valid_out;
+        if(df_valid)begin
+            after_df_valid_r            <= 1'b1;
+        end
+        if(pre_validout)begin
+            after_preparser_valid_r     <= 1'b1;
+        end
+        if(qt_validout)begin
+            after_queue_token_valid_r   <= 1'b1;
+        end
+        if(dis_validout)begin
+            after_distributor_valid_r   <= 1'b1;
+        end
+    end
+end
+
 assign after_wr_data_sent_o    = after_wr_data_sent_r;
 assign after_first_wr_ready_o  = after_first_wr_ready_r;
 assign after_first_wr_valid_o  = after_first_wr_valid_r;
+
+assign data_out_valid_in_o          = data_out_valid_in_r;
+assign byte_valid_out_o             = byte_valid_out_r;
+assign after_df_valid_o             = after_df_valid_r;
+assign after_preparser_valid_o      = after_preparser_valid_r;
+assign after_queue_token_valid_o    = after_queue_token_valid_r;
+assign after_distributor_valid_o    = after_distributor_valid_r;
 
 /****************************************
 generate module for lit_selector, copytoken_selector, block ram and copy_selector blocks
@@ -540,6 +589,24 @@ control#
 	.cl_finish(dout_cl_finish),
 	.page_finish(ct_page_finish)
 	
+);
+
+/************************************************
+This module is used for debugging: control module
+*********************************************/
+preparser_check preparser_check0(
+	.clk(clk),
+	.rst_n(rst_n),
+	
+	.data_out(qt_dout),
+	.token_pos(qt_tokenpos),
+	.address(qt_address),
+	.garbage(qt_garbage),
+	.start_lit(qt_startlit),
+	.valid(qt_validout),
+	
+	//output
+	.state_out(preparser_state_out_o)
 );
 
 assign done=dout_page_out_finish;
