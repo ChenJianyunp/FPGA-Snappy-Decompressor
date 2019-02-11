@@ -74,6 +74,8 @@ entity action_axi_slave is
                 after_distributor_valid_i   : in std_logic;
                 data_out_valid_in_i         : in std_logic_vector(15 downto 0);
                 byte_valid_out_i            : in std_logic_vector(63 downto 0);
+                distributor_state_i         : in  std_logic_vector(3 downto 0);
+                parser_state_i              : in  std_logic_vector(3 downto 0);
 
         -- Registers from 0x60 to 0x7c are reserved for the debug in this application 
 
@@ -233,6 +235,8 @@ architecture action_axi_slave of action_axi_slave is
     signal after_distributor_valid_q   : std_logic;
     signal data_out_valid_in_q         : std_logic_vector(15 downto 0);
     signal byte_valid_out_q            : std_logic_vector(63 downto 0);
+    signal distributor_state_q         : std_logic_vector(3 downto 0);
+    signal parser_state_q              : std_logic_vector(3 downto 0);
 
 begin
 	-- I/O Connections assignments
@@ -613,15 +617,15 @@ begin
 
     -- Debugging Register
 --    slv_reg24 <= (others=>'0');
-    slv_reg25 <= (others=>'0');
-    slv_reg26 <= (others=>'0');
-    slv_reg27 <= (others=>'0');
+--    slv_reg25 <= (others=>'0');
+--    slv_reg26 <= (others=>'0');
+--    slv_reg27 <= (others=>'0');
     slv_reg28 <= (others=>'0');
     slv_reg29 <= (others=>'0');
     slv_reg30 <= (others=>'0');
     slv_reg31 <= (others=>'0');
 
-    slv_reg25   <= slv_reg28(31 downto 16) & data_out_valid_in_q(15 downto 0);
+    slv_reg25   <= slv_reg28(31 downto 24) & distributor_state_q(3 downto 0) & parser_state_q(3 downto 0) & data_out_valid_in_q(15 downto 0);
     slv_reg26   <= byte_valid_out_q(63 downto 32);
     slv_reg27   <= byte_valid_out_q(31 downto 0);
 
@@ -660,6 +664,8 @@ begin
             after_distributor_valid_q   <= '0';
             data_out_valid_in_q         <= (others=>'0');
             byte_valid_out_q            <= (others=>'0');
+            distributor_state_q         <= (others=>'0');
+            parser_state_q              <= (others=>'0');
 	    else
             after_done_q                <= after_done_i;
             after_all_wr_ack_q          <= after_all_wr_ack_i;
@@ -683,6 +689,8 @@ begin
             after_distributor_valid_q   <= after_distributor_valid_i;
             data_out_valid_in_q         <= data_out_valid_in_i;
             byte_valid_out_q            <= byte_valid_out_i;
+            distributor_state_q         <= distributor_state_i;
+            parser_state_q              <= parser_state_i;
 	    end if;
 	  end if;
 	end process;

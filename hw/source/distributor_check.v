@@ -82,6 +82,10 @@ always@(posedge clk)begin
 	4'd15:begin ///wrong state
 		state <= state;
 	end
+
+    default:begin
+        state <= state;
+    end
 	endcase
 	
 	state_buff	<= state;

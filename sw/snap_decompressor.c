@@ -116,9 +116,9 @@ static int snap_action_completed_withMMIO(struct snap_action *action, int *rc, i
 
 	uint32_t rc1=0;
 	uint32_t rc2=0;
-	uint32_t rc3=0;
-	uint32_t rc4=0;
-	uint32_t rc5=0;
+	uint32_t rc3=999;
+	uint32_t rc4=999;
+	uint32_t rc5=999;
 
 	int counter1=0;
 	int counter2=0;
@@ -151,19 +151,19 @@ static int snap_action_completed_withMMIO(struct snap_action *action, int *rc, i
 
 		if(rc3!=action_state3) {
 			counter3 ++;
-			printf("SNAPPY State %d -- (Data_out_valid): %d\n",counter3,action_state3);
+			printf("Checker State %d -- (Check Code & Data_out_valid): %d\n",counter3,action_state3);
 			rc3=action_state3;
 		}
 
 		if(rc4!=action_state4) {
 			counter4 ++;
-			printf("SNAPPY State %d -- (Byte_out_valid1): %d\n",counter4,action_state4);
+			printf("Data State1 %d -- (Byte_out_valid1): %d\n",counter4,action_state4);
 			rc4=action_state4;
 		}
 
 		if(rc5!=action_state5) {
 			counter5 ++;
-			printf("SNAPPY State %d -- (Byte_out_valid2): %d\n",counter5,action_state5);
+			printf("Data State2 %d -- (Byte_out_valid2): %d\n",counter5,action_state5);
 			rc5=action_state5;
 		}
 
@@ -388,7 +388,7 @@ static void usage(const char *prog)
 
 static void printVersion()
 {
-	const char date_version[128] = "Decompressor 2019-02-07-v001";
+	const char date_version[128] = "Decompressor_Debug 2019-02-11-v001";
 	printf("**************************************************************\n");  // 58 *
 	printf("**     App Version: %-*s**\n", 40, date_version);                    // 18 chars, need 40 more
 	printf("**************************************************************\n\n");

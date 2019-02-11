@@ -183,6 +183,9 @@ architecture action_example of action_example is
         signal after_distributor_valid: std_logic;
         signal data_out_valid_in      : std_logic_vector(15 downto 0);
         signal byte_valid_out         : std_logic_vector(63 downto 0);
+        signal distributor_state      : std_logic_vector(3 downto 0);
+        signal parser_state           : std_logic_vector(3 downto 0);
+
 
 
         signal dma_rd_req        : std_logic;
@@ -302,6 +305,8 @@ architecture action_example of action_example is
             after_distributor_valid_o   : out std_logic;
             data_out_valid_in_o         : out std_logic_vector(15 downto 0);
             byte_valid_out_o            : out std_logic_vector(63 downto 0);
+            distributor_state_out_o     : out std_logic_vector(3 downto 0);
+            parser_state_out_o          : out std_logic_vector(3 downto 0);
 
 --ports to read data from host memory
 			dma_rd_req:	out std_logic;
@@ -386,6 +391,8 @@ action_axi_slave_inst : entity work.action_axi_slave
         after_distributor_valid_i   => after_distributor_valid,
         data_out_valid_in_i         => data_out_valid_in,
         byte_valid_out_i            => byte_valid_out,
+        distributor_state_i         => distributor_state,
+        parser_state_i              => parser_state,
         -- User ports ends
         S_AXI_ACLK  => action_clk,
         S_AXI_ARESETN   => action_rst_n,
@@ -531,6 +538,8 @@ axi_io0: axi_io
         after_distributor_valid_o   => after_distributor_valid,
         data_out_valid_in_o         => data_out_valid_in,
         byte_valid_out_o            => byte_valid_out,
+        distributor_state_out_o     => distributor_state,
+        parser_state_out_o          => parser_state,
 		
 		src_addr			=>(reg_0x38&reg_0x34),
 		des_addr			=>(reg_0x40&reg_0x3c),

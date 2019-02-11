@@ -43,6 +43,8 @@ module axi_io
     output after_distributor_valid_o,
     output[15:0] data_out_valid_in_o,
     output[63:0] byte_valid_out_o,
+    output[3:0] distributor_state_out_o,
+    output[3:0] parser_state_out_o,
     
     input[C_M_AXI_ADDR_WIDTH-1:0] src_addr,  //address to read from host memory
     input[C_M_AXI_ADDR_WIDTH-1:0] des_addr, ///address to write result to host memory
@@ -113,6 +115,8 @@ decompressor d0(
     .after_distributor_valid_o(after_distributor_valid_o),
     .data_out_valid_in_o(data_out_valid_in_o),
     .byte_valid_out_o(byte_valid_out_o),
+    .distributor_state_out_o(distributor_state_out_o),
+    .parser_state_out_o(parser_state_out_o),
     
     .done(done_decompressor),
     .last(dma_wr_data_last),

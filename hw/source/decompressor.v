@@ -22,6 +22,8 @@ module decompressor(
     output after_first_wr_ready_o,
     output after_first_wr_valid_o,
     output[3:0] preparser_state_out_o,
+    output[3:0] distributor_state_out_o,
+    output[3:0] parser_state_out_o,
     output after_df_valid_o,
     output after_preparser_valid_o,
     output after_queue_token_valid_o,
@@ -607,6 +609,32 @@ preparser_check preparser_check0(
 	
 	//output
 	.state_out(preparser_state_out_o)
+);
+
+distributor_check dc0(
+    .clk(clk),
+    .rst_n(rst_n),
+    
+    .data_out(dis_dout),
+    .token_pos(dis_tokenpos),
+    .address(dis_address),
+    .garbage(dis_garbage),
+    .start_lit(dis_startlit),
+    .valid(dis_validout),
+                                       
+    .state_out(distributor_state_out_o)
+);
+
+parser_check parser_check(
+    .clk(clk),
+    .rst_n(rst_n),
+
+    .data_out(ps_lit_data[5*256+63:5*256]),
+    .byte_valid(ps_lit_wr[5*32+7:5*32]),
+    .address(ps_lit_address[5*36+8:5*36]),
+    .valid(ps_lit_ram_select[5*16+15:5*16]),
+
+    .state_out(parser_state_out_o)
 );
 
 assign done=dout_page_out_finish;
