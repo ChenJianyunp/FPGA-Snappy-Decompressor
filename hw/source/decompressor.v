@@ -24,6 +24,9 @@ module decompressor(
     output[3:0] preparser_state_out_o,
     output[3:0] distributor_state_out_o,
     output[3:0] parser_state_out_o,
+    output[3:0] parser_state_check_out,
+    output[3:0] lit_fifo_wr_en_out,
+    output[3:0] lit_ramselect_out,
     output after_df_valid_o,
     output after_preparser_valid_o,
     output after_queue_token_valid_o,
@@ -196,6 +199,11 @@ wire[NUM_PARSER*144-1:0] ps_copy_address;
 wire[NUM_PARSER*16-1:0] ps_copy_ram;
 wire[NUM_PARSER*128-1:0] ps_copy_rd_out;
 wire[NUM_PARSER*256-1:0] ps_offset_out;
+
+wire[NUM_PARSER*4-1:0] parser_state_check;
+wire[NUM_PARSER*4-1:0] lit_fifo_wr_en;
+wire[NUM_PARSER*4-1:0] lit_ramselect;
+
 genvar ps_i; ///i for parsers
 generate 
 	for(ps_i=0;ps_i<NUM_PARSER;ps_i=ps_i+1)begin: generate_parsers
@@ -215,6 +223,10 @@ generate
 			.valid_in(dis_validout[NUM_PARSER-1-ps_i]),
 			.block_out_finish(dout_block_out_finish),  ///when 
 			.page_finish(ct_page_finish),
+    
+            .parser_state_state_out(parser_state_check[ps_i*4+3:ps_i*4]),
+            .lit_fifo_wr_en(lit_fifo_wr_en[ps_i*4+3:ps_i*4]),
+            .lit_ramselect(lit_ramselect[ps_i*4+3:ps_i*4]),
 	
 			.block_finish(ps_block_finish[ps_i]),
 			///for literal content 
@@ -237,6 +249,10 @@ generate
 		);
 	end
 endgenerate
+
+assign parser_state_check_out = parser_state_check[(NUM_PARSER*4-1):(NUM_PARSER*4-4)];
+assign lit_fifo_wr_en_out = lit_fifo_wr_en[(NUM_PARSER*4-1):(NUM_PARSER*4-4)];
+assign lit_ramselect_out = lit_ramselect[(NUM_PARSER*4-1):(NUM_PARSER*4-4)];
 
 ////////generate lit_selector, copytoken selector and ram
 ////////when ram_i==0, generate the ram starts with address 0

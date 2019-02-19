@@ -25,6 +25,10 @@ module parser#(
 	input valid_in,
 	input block_out_finish,  
 	input page_finish,
+
+    output[3:0] parser_state_state_out,
+    output[3:0] lit_fifo_wr_en,
+    output[3:0] lit_ramselect,
 	
 	output block_finish,
 	///for literal content 
@@ -387,10 +391,57 @@ always@(posedge clk)begin
 		copy_length_record<=copy_length_record-copy_offset_record;		
 	end
 	
-	default:begin	state	<=	3'b0;	end
+//	default:begin	state	<=	3'b0;	end
 	endcase
 end
 
+parser_state_check parser_state_check0(
+	.clk(clk),
+	.rst_n(rst_n),
+	
+	.state_in(state),
+	.lit_valid(lit_valid),
+	.copy_valid(copy_valid),
+	.valid(valid_in),
+	
+	.state_out(parser_state_state_out)
+);
+
+reg [3:0] lit_fifo_wr_r;
+reg [3:0] lit_ramselect_fifo_in_r;
+always@(posedge clk) begin
+    if(~rst_n) begin
+        lit_fifo_wr_r <= 4'b0;
+    end
+    else begin
+        if(lit_wr_w[35]) begin
+            lit_fifo_wr_r[3]    <= 1'b1;
+            if(lit_ram_select_w[15:12] != 4'b0) begin
+                lit_ramselect_fifo_in_r[3] <= 1'b1;
+            end
+        end
+        if(lit_wr_w[26]) begin
+            lit_fifo_wr_r[2]    <= 1'b1;
+            if(lit_ram_select_w[11:8] != 4'b0) begin
+                lit_ramselect_fifo_in_r[2] <= 1'b1;
+            end
+        end
+        if(lit_wr_w[17]) begin
+            lit_fifo_wr_r[1]    <= 1'b1;
+            if(lit_ram_select_w[7:4] != 4'b0) begin
+                lit_ramselect_fifo_in_r[1] <= 1'b1;
+            end
+        end
+        if(lit_wr_w[8]) begin
+            lit_fifo_wr_r[0]    <= 1'b1;
+            if(lit_ram_select_w[3:0] != 4'b0) begin
+                lit_ramselect_fifo_in_r[0] <= 1'b1;
+            end
+        end
+    end
+end
+assign lit_fifo_wr_en = lit_fifo_wr_r;
+assign lit_ramselect  = lit_ramselect_fifo_in_r;
 
 LZA16 lza16(
 	.x({1'b0,tokenpos_buff[14:0]}), // input data

@@ -45,6 +45,9 @@ module axi_io
     output[63:0] byte_valid_out_o,
     output[3:0] distributor_state_out_o,
     output[3:0] parser_state_out_o,
+    output[3:0] parser_state_check_out_o,
+    output[3:0] lit_fifo_wr_en_out_o,
+    output[3:0] lit_ramselect_o,
     
     input[C_M_AXI_ADDR_WIDTH-1:0] src_addr,  //address to read from host memory
     input[C_M_AXI_ADDR_WIDTH-1:0] des_addr, ///address to write result to host memory
@@ -117,6 +120,9 @@ decompressor d0(
     .byte_valid_out_o(byte_valid_out_o),
     .distributor_state_out_o(distributor_state_out_o),
     .parser_state_out_o(parser_state_out_o),
+    .parser_state_check_out(parser_state_check_out_o),
+    .lit_fifo_wr_en_out(lit_fifo_wr_en_out_o),
+    .lit_ramselect_out(lit_ramselect_o),
     
     .done(done_decompressor),
     .last(dma_wr_data_last),

@@ -102,70 +102,111 @@ static void action_write(struct snap_card* h, uint32_t addr, uint32_t data)
  *  my complete function
  *  same as action_action_completed but more MMIO info back
 */
-static int snap_action_completed_withMMIO(struct snap_action *action, int *rc, int timeout)
+static int snap_action_completed_withMMIO(struct snap_action *action, int *rc, int timeout, int usec_sleep)
 {
 	int _rc = 0;
 	uint32_t action_data = 0;
     uint32_t action_state2 = 0;
     uint32_t action_state3 = 0;
-    uint32_t action_state4 = 0;
-    uint32_t action_state5 = 0; 
+//    uint32_t action_state4 = 0;
+//    uint32_t action_state5 = 0; 
 	struct snap_card *card = (struct snap_card *)action;
 	unsigned long t0;
 	int dt, timeout_us;
 
 	uint32_t rc1=0;
-	uint32_t rc2=0;
-	uint32_t rc3=999;
-	uint32_t rc4=999;
-	uint32_t rc5=999;
+	uint32_t rc2=111;
+	uint32_t rc3=111;
+//	uint32_t rc4=111;
+//	uint32_t rc5=111;
 
 	int counter1=0;
 	int counter2=0;
 	int counter3=0;
-	int counter4=0;
-	int counter5=0;
+//	int counter4=0;
+//	int counter5=0;
+    int printFlag=0;
 
 	/* Busy poll timout sec */
 	t0 = get_usec();
 	dt = 0;
 	timeout_us = timeout * 1000 * 1000;
+    printf("Step: In action wait completed and before read MMIO!\n");
 	while (dt < timeout_us) {
-		_rc = snap_mmio_read32(card, ACTION_CONTROL, &action_data);
-		snap_mmio_read32(card, 0x60, &action_state2);
-        snap_mmio_read32(card, 0x64, &action_state3);
-        snap_mmio_read32(card, 0x68, &action_state4);
-        snap_mmio_read32(card, 0x6c, &action_state5);
 
+#ifndef NOTPRINT
+if(printFlag==0) {
+    printf("Step: Before Read MMIO control!\n");
+}
+#endif
+		_rc = snap_mmio_read32(card, ACTION_CONTROL, &action_data);
+        usleep(usec_sleep);
 		if(rc1!=action_data) {
 			counter1 ++;
-			printf("AFU State %d -- (Register Code): %d\n",counter1,action_data);
+			printf("T1-AFU State %d -- (Register Code): %d\n",counter1,action_data);
 			rc1=action_data;
 		}
 
+#ifndef NOTPRINT
+if(printFlag==0) {
+    printf("Step: Before Read MMIO 2!\n");
+}
+#endif
+    	snap_mmio_read32(card, 0x60, &action_state2);
+        usleep(usec_sleep);
 		if(rc2!=action_state2) {
 			counter2 ++;
-			printf("SNAPPY State %d -- (State Code): %d\n",counter2,action_state2);
+			printf("T2-SNAPPY State %d -- (State Code): %d\n",counter2,action_state2);
 			rc2=action_state2;
 		}
 
+#ifndef NOTPRINT
+if(printFlag==0) {
+    printf("Step: Before Read MMIO 3!\n");
+}
+#endif
+        snap_mmio_read32(card, 0x64, &action_state3);
+        usleep(usec_sleep);
 		if(rc3!=action_state3) {
 			counter3 ++;
-			printf("Checker State %d -- (Check Code & Data_out_valid): %d\n",counter3,action_state3);
+			printf("T3-Checker State %d -- (Check Code & Data_out_valid): %d\n",counter3,action_state3);
 			rc3=action_state3;
 		}
 
+/*
+#ifndef NOTPRINT
+if(printFlag==0) {
+    printf("Step: Before Read MMIO 4!\n");
+}
+#endif
+        snap_mmio_read32(card, 0x68, &action_state4);
+        usleep(usec_sleep);
 		if(rc4!=action_state4) {
 			counter4 ++;
-			printf("Data State1 %d -- (Byte_out_valid1): %d\n",counter4,action_state4);
+			printf("T4-Data State1 %d -- (Byte_out_valid1): %d\n",counter4,action_state4);
 			rc4=action_state4;
 		}
 
+#ifndef NOTPRINT
+if(printFlag==0) {
+    printf("Step: Before Read MMIO 5!\n");
+}
+#endif
+
+        snap_mmio_read32(card, 0x6c, &action_state5);
+        usleep(usec_sleep);
 		if(rc5!=action_state5) {
 			counter5 ++;
-			printf("Data State2 %d -- (Byte_out_valid2): %d\n",counter5,action_state5);
+			printf("T5-Data State2 %d -- (Byte_out_valid2): %d\n",counter5,action_state5);
 			rc5=action_state5;
 		}
+#ifndef NOTPRINT
+if(printFlag==0) {
+    printf("Step: After Read MMIO 5!\n");
+}
+#endif
+*/
+//printFlag=1;
 
 		if ((action_data & ACTION_CONTROL_IDLE) == ACTION_CONTROL_IDLE)
 			break;
@@ -182,18 +223,21 @@ static int snap_action_completed_withMMIO(struct snap_action *action, int *rc, i
 /*
  *	Start Action and wait for Idle.
  */
-static int action_wait_idle(struct snap_card* h, int timeout, uint64_t *elapsed)
+static int action_wait_idle(struct snap_card* h, int timeout, uint64_t *elapsed, int usec_sleep)
 {
     int rc = 0;
     uint64_t t_start;   /* time in usec */
     uint64_t td = 0;    /* Diff time in usec */
 
     /* FIXME Use struct snap_action and not struct snap_card */
+    printf("Step: Before action start!\n");
     snap_action_start((void*)h);
 
     /* Wait for Action to go back to Idle */
     t_start = get_usec();
-    rc = snap_action_completed_withMMIO((void*)h, NULL, timeout);
+    printf("Step: Before action completed!\n");
+    rc = snap_action_completed_withMMIO((void*)h, NULL, timeout, usec_sleep);
+    printf("Step: After action_wait_idle!\n");
     if (rc) rc = 0;   /* Good */
     else rc = ETIME;  /* Timeout */
     if (0 != rc)
@@ -213,12 +257,16 @@ static void action_decompress(struct snap_card* h,
     uint64_t addr;
 
     VERBOSE1(" decompress from %p to %p\n with input size %ld and output size %ld\n", src, dest, rd_size,wr_size);
+    printf("Step: In action_decompress!\n");
     addr = (uint64_t)dest;
+    printf("Step: Before dest address write!\n");
     action_write(h, ACTION_DEST_LOW, (uint32_t)(addr & 0xffffffff));
     action_write(h, ACTION_DEST_HIGH, (uint32_t)(addr >> 32));
     addr = (uint64_t)src;
+    printf("Step: Before src address write!\n");
     action_write(h, ACTION_SRC_LOW, (uint32_t)(addr & 0xffffffff));
     action_write(h, ACTION_SRC_HIGH, (uint32_t)(addr >> 32));
+    printf("Step: Before length write!\n");
     action_write(h, ACTION_RD_SIZE, rd_size);
     action_write(h, ACTION_WR_SIZE, wr_size);
 
@@ -234,7 +282,8 @@ static int do_decompression(struct snap_card *h,
             void *src,
             unsigned long rd_size,
             unsigned long wr_size,
-            int skip_Detach
+            int skip_Detach,
+            int usec_sleep
 )
 {
     int rc;
@@ -242,6 +291,7 @@ static int do_decompression(struct snap_card *h,
     uint64_t td;
 
     /* attach the action */
+    printf("Step: Before action attach!\n");
     act = snap_attach_action(h, ACTION_TYPE_EXAMPLE, flags, 5 * timeout);
     if (NULL == act) {
         VERBOSE0("Error: Can not attach Action: %x\n", ACTION_TYPE_EXAMPLE);
@@ -250,11 +300,14 @@ static int do_decompression(struct snap_card *h,
     }
 
     /* send action control data */
+    printf("Step: Before action_decompress!\n");
     action_decompress(h, dest, src, rd_size,wr_size);
 
     /* start the action and wait for it ends */
-    rc = action_wait_idle(h, timeout, &td);
+    printf("Step: Before action_wait_idle!\n");
+    rc = action_wait_idle(h, timeout, &td, usec_sleep);
 
+    printf("Step: Before action detach!\n");
     if(skip_Detach==0) { /* No '-S' option, so do not skip detach*/
         if (0 != snap_detach_action(act)) {
             VERBOSE0("Error: Can not detach Action: %x\n", ACTION_TYPE_EXAMPLE);
@@ -301,7 +354,8 @@ static int decompression_test(struct snap_card* dnc,
             int timeout,/* Timeout to wait in sec */
             char* inputfile,
             char* outputfile,
-            int skip_Detach
+            int skip_Detach,
+            int usec_sleep
             )    
 {
     int rc;
@@ -348,7 +402,7 @@ software side, always allocate a more memory for writing back. */
     src = (void *)ibuff;
     dest = (void *)obuff;
 
-    rc = do_decompression(dnc, attach_flags, timeout, dest, src, size, set_size, skip_Detach);
+    rc = do_decompression(dnc, attach_flags, timeout, dest, src, size, set_size, skip_Detach, usec_sleep);
     if (0 == rc) {
         printf("decompression finished");
     }
@@ -380,6 +434,7 @@ static void usage(const char *prog)
         "    -i, --input          Specify the input file (in simulation, please use abs path)\n"
         "    -o, --ouput          Specify the output file (in simulation, please use abs path)\n"
         "    -S. --skip           Skip detach for debug only (do not use this in release version)\n"
+        "    -u. --usleep         sleep in microseconds between two MMIO read\n"
 
         "    -B, --size64         Number of 64 Bytes Blocks for Memcopy (default 0)\n"
         "    -A, --align          Memcpy alignemend (default 4 KB)\n"
@@ -388,7 +443,7 @@ static void usage(const char *prog)
 
 static void printVersion()
 {
-	const char date_version[128] = "Decompressor_Debug 2019-02-11-v001";
+	const char date_version[128] = "Decompressor 2019-02-12-v001";
 	printf("**************************************************************\n");  // 58 *
 	printf("**     App Version: %-*s**\n", 40, date_version);                    // 18 chars, need 40 more
 	printf("**************************************************************\n\n");
@@ -401,6 +456,7 @@ int main(int argc, char *argv[])
     char inputfile[256]="testdata/test.snp";
     char outputfile[256]="testdata/test.txt";
     int skip_Detach = 0;
+    int usec_sleep = 10000;
     struct snap_card *dn;	/* lib snap handle */
     int start_delay = START_DELAY;
     int end_delay = END_DELAY;
@@ -437,9 +493,10 @@ int main(int argc, char *argv[])
             { "timeout",  required_argument, NULL, 't' },
             { "irq",      no_argument,       NULL, 'I' },
             { "skip",     no_argument,       NULL, 'S' },
+            { "usleep",   required_argument, NULL, 'u' },
             { 0,          no_argument,       NULL, 0   },
         };
-        cmd = getopt_long(argc, argv, "C:s:e:i:o:B:A:t:SIvVh",
+        cmd = getopt_long(argc, argv, "C:s:e:i:o:B:A:t:u:SIvVh",
             long_options, &option_index);
         if (cmd == -1)  /* all params processed ? */
             break;
@@ -462,6 +519,9 @@ int main(int argc, char *argv[])
             break;
         case 'e':   /* end delay */
             end_delay = strtol(optarg, (char **)NULL, 0);
+            break;
+        case 'u':   /* end delay */
+            usec_sleep = strtol(optarg, (char **)NULL, 0);
             break;
         case 'i':   /* input file */
             strcpy(inputfile,optarg);
@@ -550,7 +610,7 @@ int main(int argc, char *argv[])
   VERBOSE1("Start of Action Card Handle: %p Context: %d\n", dn, (int)(cir & 0x1ff));
 
     /* start decompression */
-    rc=decompression_test(dn, attach_flags, timeout, inputfile, outputfile, skip_Detach);
+    rc=decompression_test(dn, attach_flags, timeout, inputfile, outputfile, skip_Detach, usec_sleep);
 
 __exit1:
     // Unmap AFU MMIO registers, if previously mapped
