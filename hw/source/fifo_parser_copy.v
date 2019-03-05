@@ -4,8 +4,8 @@ module fifo_parser_copy(
 	
 //	.almost_full(),
 	output full,
-	output[WIDTH-1:0] din,
-	output wr_en,
+	input[WIDTH-1:0] din,
+	input wr_en,
 	
 	output empty,
 	output[WIDTH-1:0] dout,
