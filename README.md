@@ -45,4 +45,5 @@ Update log
 | Jian Fang   | 01-02-2019: Fix a bug on write responses(bresp signal, need to wait until the last bresp back for the write data)\
 | Jianyu Chen | 04-02-2019: Fix the bug in the calculation of token length of 3Byte literal token\
 | Jianyu Chen | 05-02-2019: Fix a bug when calculate the length of a literal token within a slice\
-| Jianyu Chen | 05-02-2019: Fix the bug in checking the empty of decompressor when the file is very small
+| Jianyu Chen | 05-02-2019: Fix the bug in checking the empty of decompressor when the file is very small\
+| Jian Fang   | 05-03-2019: Fix the bug of input/output of 'data_in' and 'wr_en' signals in the parser fifo (both lit and copy)\
