@@ -96,15 +96,32 @@ always@(posedge clk)begin
 			rd_address	<= rd_address_w;
 			rd_valid	<= 1'b1;
 		end else begin
-			rd_valid	<= 1'b0;
+			//rd_valid	<= 1'b0;
+   /****************************************************/
+            if(valid_o & ready) begin
+                rd_valid <= 1'b0;
+            end
+   /****************************************************/
 		end
-		
+	/*	
 		if((rd_address[9:0]==10'd1022) & valid_lower & ready)begin
 			state<=3'd2;
 		end else if((rd_address==max_address) & page_finish & ready)begin //whether output all the data in page
 			state<=3'd3;
 			final_valid	<=1'b1;			
 		end
+    */
+   /****************************************************/
+        if(rd_address==max_address) begin
+            if(page_finish & ready)begin //whether output all the data in page
+			    state<=3'd3;
+			    final_valid	<=1'b1;
+            end        
+		end
+        else if((rd_address[9:0]==10'd1022) & valid_lower & ready)begin
+			state<=3'd2;
+        end
+   /****************************************************/
 	end
 	3'd2:begin  //clean the input
 		if(valid_upper & ready)begin
@@ -245,9 +262,9 @@ assign block_out_finish=block_out_finish_buff_r2;
 
 assign page_out_finish=page_out_finish_buff_r;
 assign cl_finish=cl_finish_flag;
-assign data_o		=rd_address[0]?data_upper:data_lower;
-assign byte_valid_o	=(~64'b0);
-assign valid_o		=((rd_address[0]?valid_upper:valid_lower)&rd_valid)| final_valid;
-assign last			=valid_o & (final_valid |last_r);
+assign data_o       =rd_address[0]?data_upper:data_lower;
+assign byte_valid_o =(~64'b0);
+assign valid_o      =((rd_address[0]?valid_upper:valid_lower)&rd_valid)| final_valid;
+assign last         =valid_o & (final_valid |last_r);
 
 endmodule
