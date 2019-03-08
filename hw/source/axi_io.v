@@ -48,6 +48,7 @@ module axi_io
     output[3:0] parser_state_check_out_o,
     output[3:0] lit_fifo_wr_en_out_o,
     output[3:0] lit_ramselect_o,
+    output[3:0] fifo_error_in_o,
     
     input[C_M_AXI_ADDR_WIDTH-1:0] src_addr,  //address to read from host memory
     input[C_M_AXI_ADDR_WIDTH-1:0] des_addr, ///address to write result to host memory
@@ -123,6 +124,7 @@ decompressor d0(
     .parser_state_check_out(parser_state_check_out_o),
     .lit_fifo_wr_en_out(lit_fifo_wr_en_out_o),
     .lit_ramselect_out(lit_ramselect_o),
+    .fifo_error_in_out(fifo_error_in_o),
     
     .done(done_decompressor),
     .last(dma_wr_data_last),

@@ -4,8 +4,8 @@ module read_result_fifo(
 	
 //	.almost_full(),
 	output full,
-	output[88:0] din,
-	output wr_en,
+	input[88:0] din,
+	input wr_en,
 	
 	output empty,
 	output[88:0] dout,

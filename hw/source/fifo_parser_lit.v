@@ -4,7 +4,7 @@ module fifo_parser_lit(
 	
 //	.almost_full(),
 	output full,
-	input[WIDTH-1:0] din,
+	input [WIDTH-1:0] din,
 	input wr_en,
 	
 	output empty,

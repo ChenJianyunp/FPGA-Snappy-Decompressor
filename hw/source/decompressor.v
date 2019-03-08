@@ -27,6 +27,7 @@ module decompressor(
     output[3:0] parser_state_check_out,
     output[3:0] lit_fifo_wr_en_out,
     output[3:0] lit_ramselect_out,
+    output[3:0] fifo_error_in_out,
     output after_df_valid_o,
     output after_preparser_valid_o,
     output after_queue_token_valid_o,
@@ -203,6 +204,7 @@ wire[NUM_PARSER*256-1:0] ps_offset_out;
 wire[NUM_PARSER*4-1:0] parser_state_check;
 wire[NUM_PARSER*4-1:0] lit_fifo_wr_en;
 wire[NUM_PARSER*4-1:0] lit_ramselect;
+wire[NUM_PARSER*4-1:0] fifo_error;
 
 genvar ps_i; ///i for parsers
 generate 
@@ -227,6 +229,7 @@ generate
             .parser_state_state_out(parser_state_check[ps_i*4+3:ps_i*4]),
             .lit_fifo_wr_en(lit_fifo_wr_en[ps_i*4+3:ps_i*4]),
             .lit_ramselect(lit_ramselect[ps_i*4+3:ps_i*4]),
+            .fifo_error_in(fifo_error[ps_i*4+3:ps_i*4]),
 	
 			.block_finish(ps_block_finish[ps_i]),
 			///for literal content 
@@ -253,6 +256,7 @@ endgenerate
 assign parser_state_check_out = parser_state_check[(NUM_PARSER*4-1):(NUM_PARSER*4-4)];
 assign lit_fifo_wr_en_out = lit_fifo_wr_en[(NUM_PARSER*4-1):(NUM_PARSER*4-4)];
 assign lit_ramselect_out = lit_ramselect[(NUM_PARSER*4-1):(NUM_PARSER*4-4)];
+assign fifo_error_in_out = fifo_error[(NUM_PARSER*4-1):(NUM_PARSER*4-4)];
 
 ////////generate lit_selector, copytoken selector and ram
 ////////when ram_i==0, generate the ram starts with address 0

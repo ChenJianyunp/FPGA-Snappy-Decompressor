@@ -29,6 +29,7 @@ module parser#(
     output[3:0] parser_state_state_out,
     output[3:0] lit_fifo_wr_en,
     output[3:0] lit_ramselect,
+    output[3:0] fifo_error_in,
 	
 	output block_finish,
 	///for literal content 
@@ -409,32 +410,47 @@ parser_state_check parser_state_check0(
 
 reg [3:0] lit_fifo_wr_r;
 reg [3:0] lit_ramselect_fifo_in_r;
+reg [3:0] fifo_error_in_r;
 always@(posedge clk) begin
     if(~rst_n) begin
         lit_fifo_wr_r <= 4'b0;
+        fifo_error_in_r <= 4'b0;
     end
     else begin
         if(lit_wr_w[35]) begin
             lit_fifo_wr_r[3]    <= 1'b1;
-            if(lit_ram_select_w[15:12] != 4'b0) begin
+            if(lit_ram_select_w[15:12] == 4'b0) begin
+                fifo_error_in_r[3] <= 1'b1;
+            end
+            else begin
                 lit_ramselect_fifo_in_r[3] <= 1'b1;
             end
         end
         if(lit_wr_w[26]) begin
             lit_fifo_wr_r[2]    <= 1'b1;
-            if(lit_ram_select_w[11:8] != 4'b0) begin
+            if(lit_ram_select_w[11:8] == 4'b0) begin
+                fifo_error_in_r[2] <= 1'b1;
+            end
+            else begin
                 lit_ramselect_fifo_in_r[2] <= 1'b1;
             end
         end
         if(lit_wr_w[17]) begin
             lit_fifo_wr_r[1]    <= 1'b1;
-            if(lit_ram_select_w[7:4] != 4'b0) begin
+            if(lit_ram_select_w[7:4] == 4'b0) begin
+                fifo_error_in_r[1] <= 1'b1;
+            end
+            else begin
                 lit_ramselect_fifo_in_r[1] <= 1'b1;
             end
+                // TODO: add a error state output.
         end
         if(lit_wr_w[8]) begin
             lit_fifo_wr_r[0]    <= 1'b1;
-            if(lit_ram_select_w[3:0] != 4'b0) begin
+            if(lit_ram_select_w[3:0] == 4'b0) begin
+                fifo_error_in_r[0] <= 1'b1;
+            end
+            else begin
                 lit_ramselect_fifo_in_r[0] <= 1'b1;
             end
         end
@@ -442,6 +458,7 @@ always@(posedge clk) begin
 end
 assign lit_fifo_wr_en = lit_fifo_wr_r;
 assign lit_ramselect  = lit_ramselect_fifo_in_r;
+assign fifo_error_in  = fifo_error_in_r;
 
 LZA16 lza16(
 	.x({1'b0,tokenpos_buff[14:0]}), // input data
