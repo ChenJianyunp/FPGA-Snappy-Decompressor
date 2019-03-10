@@ -473,10 +473,12 @@ reg[143:0] data_buff7;
 always@(posedge clk)begin
 
 	case(garbage_cnt)
-	2'd0:begin tokenpos_7	<=	tokenpos_6;  				data_buff7	<=	data_buff6; 				end
-	2'd1:begin tokenpos_7	<=	{tokenpos_6[14:0],1'b0}; 	data_buff7	<=	{data_buff6[135:0],8'b0};	end
-	2'd2:begin tokenpos_7	<=	{tokenpos_6[13:0],2'b0}; 	data_buff7	<=	{data_buff6[127:0],16'b0};	end
-	2'd3:begin tokenpos_7	<=	{tokenpos_6[12:0],3'b0};	data_buff7	<=	{data_buff6[119:0],24'b0};	end
+	3'd0:begin tokenpos_7	<=	tokenpos_6;  				data_buff7	<=	data_buff6; 				end
+	3'd1:begin tokenpos_7	<=	{tokenpos_6[14:0],1'b0}; 	data_buff7	<=	{data_buff6[135:0],8'b0};	end
+	3'd2:begin tokenpos_7	<=	{tokenpos_6[13:0],2'b0}; 	data_buff7	<=	{data_buff6[127:0],16'b0};	end
+	3'd3:begin tokenpos_7	<=	{tokenpos_6[12:0],3'b0};	data_buff7	<=	{data_buff6[119:0],24'b0};	end
+	3'd4:begin tokenpos_7	<=	{tokenpos_6[11:0],4'b0};	data_buff7	<=	{data_buff6[111:0],32'b0};	end
+	3'd5:begin tokenpos_7	<=	{tokenpos_6[10:0],5'b0};	data_buff7	<=	{data_buff6[103:0],40'b0};	end
 	endcase
 	
 	garbage_cnt7<=garbage_cnt;
