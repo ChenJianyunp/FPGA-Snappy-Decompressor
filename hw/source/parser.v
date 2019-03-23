@@ -3,7 +3,7 @@ Module name: 	parser
 Author:			Jianyu Chen
 Email:			chenjy0046@gmail.com
 School:			Delft University of Technology
-Date:			10th Sept, 2018
+Date:			23rd March, 2019
 Function:		This is the 2nd level parser. It will get slice(from the 1st level parser) 
 				from distributor and cut it into tokens. The tokens will be sorted into 2
 				kinds: literal and copy. These two kinds of token will be sent to the two kinds
@@ -371,20 +371,25 @@ always@(posedge clk)begin
 	will be regarded as the repitition of the first "abc"
 	*/
 	3'd4:begin  ///solve the offset<length
-		if(copy_offset_record<=copy_length_record)begin
-			copy_length<=copy_length;
-		end else begin
-			copy_length<=copy_length_record;
-			if(empty_flag)begin
-				state			<=3'd1;
-				slice_req		<=1'b1;
+		if(!stop_flag)begin    ///only work if not stop
+			if(copy_offset_record<=copy_length_record)begin
+				copy_length<=copy_length;
 			end else begin
-				state			<=3'd2;
+				copy_length<=copy_length_record;
+				if(empty_flag)begin ///if this is the last token, set request and jump to state 1
+					state			<=3'd1;
+					slice_req		<=1'b1;
+				end else begin
+					state			<=3'd2;
+				end
 			end
+			copy_address	<=copy_address+copy_offset_record;
+			copy_offset		<=copy_offset+copy_offset_record;
+			copy_length_record<=copy_length_record-copy_offset_record;
+			copy_valid		<=1'b1;			
+		end else begin
+			copy_valid		<=1'b0;
 		end
-		copy_address	<=copy_address+copy_offset_record;
-		copy_offset		<=copy_offset+copy_offset_record;
-		copy_length_record<=copy_length_record-copy_offset_record;		
 	end
 	
 	default:begin	state	<=	3'b0;	end
@@ -511,7 +516,7 @@ parser_copy #(
 	.length_in(copy_length),
 	.address_in(copy_address),	/////////[2:0]:shift [6:3]index for bram [15:7]: bram address 
 	.offset_in(copy_offset),
-	.valid_in(copy_valid & ~stop_flag_delay),
+	.valid_in(copy_valid),
 	
 	.address_out(copy_address_w), 		//address for 16 rams, each is 9-bits
 	.ram_select(copy_ram_select_w),     ///chose it wants to read from a ram
