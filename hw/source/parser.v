@@ -3,7 +3,7 @@ Module name: 	parser
 Author:			Jianyu Chen
 Email:			chenjy0046@gmail.com
 School:			Delft University of Technology
-Date:			23rd March, 2019
+Date:			25th March, 2019
 Function:		This is the 2nd level parser. It will get slice(from the 1st level parser) 
 				from distributor and cut it into tokens. The tokens will be sorted into 2
 				kinds: literal and copy. These two kinds of token will be sent to the two kinds
@@ -123,6 +123,7 @@ assign copy_sep_3b=(offset_3b<=length_3b) & (offset_3b>2);
 
 //the signal below is for debug only, do not synthesize it
 reg debug_signal1;
+reg overflow_flag;
 
 always@(posedge clk)begin
 	
@@ -192,7 +193,9 @@ always@(posedge clk)begin
 			slice_req		<=1'b1;
 		end
 		
-		address_buff	<=address_buff_w;
+		address_buff	<= address_buff_w;
+		//record whether a overflow happens in this cycle
+		overflow_flag	<= address_buff_w[16]^overflow_record;
 		
 		if(start_lit_buff==1'b1)begin
 		//lza_z is the length of leading zero, 
@@ -379,6 +382,8 @@ always@(posedge clk)begin
 				if(empty_flag)begin ///if this is the last token, set request and jump to state 1
 					state			<=3'd1;
 					slice_req		<=1'b1;
+				end else if(overflow_flag)begin //check whether this is the last token of a 64KB block
+					state			<=3'd3;
 				end else begin
 					state			<=3'd2;
 				end
