@@ -19,7 +19,10 @@ module data_out(
 	input[1023:0] lit_in,
 	input[143:0] lit_address,
 	input[127:0] lit_valid,
-	input page_finish,  ///if all the page has already processed 
+	input page_finish,  ///if all the page has already processed
+
+    // for debug and to see how far the decompression is 
+    output [25:0] process_cnt_o,
 	/////
 	output block_out_finish,  ///all data in block has outputed
 	output page_out_finish,
@@ -266,5 +269,7 @@ assign data_o       =rd_address[0]?data_upper:data_lower;
 assign byte_valid_o =(~64'b0);
 assign valid_o      =((rd_address[0]?valid_upper:valid_lower)&rd_valid)| final_valid;
 assign last         =valid_o & (final_valid |last_r);
+
+assign process_cnt_o = rd_address;
 
 endmodule

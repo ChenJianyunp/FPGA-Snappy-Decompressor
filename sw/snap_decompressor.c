@@ -64,6 +64,11 @@ Function:	This a program to test the hardware Snappy decompressor,
 		printf(fmt, ## __VA_ARGS__);	\
 } while (0)
 
+// Switch of using long timeout (simulation) or short timeout (measurement)
+#define LONGTIMEOUT
+// Switch of print the debug info or not
+#define DEBUGINFO
+
 static const char *version = GIT_VERSION;
 static	int verbose_level = 0;
 
@@ -106,111 +111,93 @@ static int snap_action_completed_withMMIO(struct snap_action *action, int *rc, i
 {
 	int _rc = 0;
 	uint32_t action_data = 0;
+#ifdef DEBUGINFO   
     uint32_t action_state2 = 0;
     uint32_t action_state3 = 0;
-//    uint32_t action_state4 = 0;
-//    uint32_t action_state5 = 0; 
-	struct snap_card *card = (struct snap_card *)action;
-	unsigned long t0;
-	int dt, timeout_us;
 
 	uint32_t rc1=0;
 	uint32_t rc2=111;
 	uint32_t rc3=111;
-//	uint32_t rc4=111;
-//	uint32_t rc5=111;
 
 	int counter1=0;
 	int counter2=0;
 	int counter3=0;
-//	int counter4=0;
-//	int counter5=0;
-    int printFlag=0;
+#endif
+
+	struct snap_card *card = (struct snap_card *)action;
+	unsigned long t0;
+
+#ifdef LONGTIMEOUT
+    unsigned long dt, timeout_us;
+#else
+	int dt, timeout_us;
+#endif
+
 
 	/* Busy poll timout sec */
 	t0 = get_usec();
 	dt = 0;
-	timeout_us = timeout * 1000 * 1000;
-    printf("Step: In action wait completed and before read MMIO!\n");
-	while (dt < timeout_us) {
-
-#ifndef NOTPRINT
-if(printFlag==0) {
-    printf("Step: Before Read MMIO control!\n");
-}
+    
+#ifdef LONGTIMEOUT
+	timeout_us = ((unsigned long)timeout) * 1000 * 1000;
+#ifdef DEBUGINFO 
+    unsigned long timeout_1_10 = timeout_us/10; 
+    printf("The timeout is %ld us\n",timeout_us);
 #endif
-		_rc = snap_mmio_read32(card, ACTION_CONTROL, &action_data);
+#else
+	timeout_us = timeout * 1000 * 1000;
+#ifdef DEBUGINFO 
+    int timeout_1_10 = timeout_us/10;
+    printf("The timeout is %d us\n",timeout_us);
+#endif
+#endif
+
+#ifdef DEBUGINFO 
+int Ntimes = 0;
+#endif
+
+	while (dt < timeout_us) {
+#ifdef DEBUGINFO 
+        if((int)(dt/timeout_1_10) > Ntimes)
+        {
+            Ntimes = (int)(dt/timeout_1_10);
+            printf("Now the process has been processed for %d0%%\n",Ntimes);
+        }
+#endif
+
         usleep(usec_sleep);
+		_rc = snap_mmio_read32(card, ACTION_CONTROL, &action_data);
+#ifdef DEBUGINFO   
 		if(rc1!=action_data) {
 			counter1 ++;
-			printf("T1-AFU State %d -- (Register Code): %d\n",counter1,action_data);
+			printf("T1-AFU State %d -- (State Code): %u\n",counter1,action_data);
 			rc1=action_data;
 		}
 
-#ifndef NOTPRINT
-if(printFlag==0) {
-    printf("Step: Before Read MMIO 2!\n");
-}
-#endif
     	snap_mmio_read32(card, 0x60, &action_state2);
         usleep(usec_sleep);
 		if(rc2!=action_state2) {
 			counter2 ++;
-			printf("T2-SNAPPY State %d -- (State Code): %d\n",counter2,action_state2);
+			printf("T2-SNAPPY Flag %d -- (Flag Code): %u\n",counter2,action_state2);
 			rc2=action_state2;
 		}
 
-#ifndef NOTPRINT
-if(printFlag==0) {
-    printf("Step: Before Read MMIO 3!\n");
-}
-#endif
         snap_mmio_read32(card, 0x64, &action_state3);
         usleep(usec_sleep);
 		if(rc3!=action_state3) {
 			counter3 ++;
-			printf("T3-Checker State %d -- (Check Code & Data_out_valid): %d\n",counter3,action_state3);
+			printf("T3-Process Counter %d -- (Process until): %uth block(64B block) or %uth Bytes\n",counter3,action_state3,(action_state3*64));
 			rc3=action_state3;
 		}
-
-/*
-#ifndef NOTPRINT
-if(printFlag==0) {
-    printf("Step: Before Read MMIO 4!\n");
-}
 #endif
-        snap_mmio_read32(card, 0x68, &action_state4);
-        usleep(usec_sleep);
-		if(rc4!=action_state4) {
-			counter4 ++;
-			printf("T4-Data State1 %d -- (Byte_out_valid1): %d\n",counter4,action_state4);
-			rc4=action_state4;
-		}
-
-#ifndef NOTPRINT
-if(printFlag==0) {
-    printf("Step: Before Read MMIO 5!\n");
-}
-#endif
-
-        snap_mmio_read32(card, 0x6c, &action_state5);
-        usleep(usec_sleep);
-		if(rc5!=action_state5) {
-			counter5 ++;
-			printf("T5-Data State2 %d -- (Byte_out_valid2): %d\n",counter5,action_state5);
-			rc5=action_state5;
-		}
-#ifndef NOTPRINT
-if(printFlag==0) {
-    printf("Step: After Read MMIO 5!\n");
-}
-#endif
-*/
-//printFlag=1;
 
 		if ((action_data & ACTION_CONTROL_IDLE) == ACTION_CONTROL_IDLE)
 			break;
+#ifdef LONGTIMEOUT
+		dt = get_usec() - t0;
+#else
 		dt = (int)(get_usec() - t0);
+#endif
 	}
 	if (rc)
 		*rc = _rc;
@@ -230,14 +217,11 @@ static int action_wait_idle(struct snap_card* h, int timeout, uint64_t *elapsed,
     uint64_t td = 0;    /* Diff time in usec */
 
     /* FIXME Use struct snap_action and not struct snap_card */
-    printf("Step: Before action start!\n");
     snap_action_start((void*)h);
 
     /* Wait for Action to go back to Idle */
     t_start = get_usec();
-    printf("Step: Before action completed!\n");
     rc = snap_action_completed_withMMIO((void*)h, NULL, timeout, usec_sleep);
-    printf("Step: After action_wait_idle!\n");
     if (rc) rc = 0;   /* Good */
     else rc = ETIME;  /* Timeout */
     if (0 != rc)
@@ -256,17 +240,13 @@ static void action_decompress(struct snap_card* h,
 {
     uint64_t addr;
 
-    VERBOSE1(" decompress from %p to %p\n with input size %ld and output size %ld\n", src, dest, rd_size,wr_size);
-    printf("Step: In action_decompress!\n");
+//    VERBOSE1(" decompress from %p to %p\n with input size %ld and output size %ld\n", src, dest, rd_size,wr_size);
     addr = (uint64_t)dest;
-    printf("Step: Before dest address write!\n");
     action_write(h, ACTION_DEST_LOW, (uint32_t)(addr & 0xffffffff));
     action_write(h, ACTION_DEST_HIGH, (uint32_t)(addr >> 32));
     addr = (uint64_t)src;
-    printf("Step: Before src address write!\n");
     action_write(h, ACTION_SRC_LOW, (uint32_t)(addr & 0xffffffff));
     action_write(h, ACTION_SRC_HIGH, (uint32_t)(addr >> 32));
-    printf("Step: Before length write!\n");
     action_write(h, ACTION_RD_SIZE, rd_size);
     action_write(h, ACTION_WR_SIZE, wr_size);
 
@@ -283,15 +263,16 @@ static int do_decompression(struct snap_card *h,
             unsigned long rd_size,
             unsigned long wr_size,
             int skip_Detach,
-            int usec_sleep
+            int usec_sleep,
+            unsigned long *time
 )
 {
     int rc;
     struct snap_action *act = NULL;
     uint64_t td;
+    unsigned long t0, t1;
 
     /* attach the action */
-    printf("Step: Before action attach!\n");
     act = snap_attach_action(h, ACTION_TYPE_EXAMPLE, flags, 5 * timeout);
     if (NULL == act) {
         VERBOSE0("Error: Can not attach Action: %x\n", ACTION_TYPE_EXAMPLE);
@@ -300,14 +281,14 @@ static int do_decompression(struct snap_card *h,
     }
 
     /* send action control data */
-    printf("Step: Before action_decompress!\n");
     action_decompress(h, dest, src, rd_size,wr_size);
 
     /* start the action and wait for it ends */
-    printf("Step: Before action_wait_idle!\n");
+    t0 = get_usec();
     rc = action_wait_idle(h, timeout, &td, usec_sleep);
+    t1 = get_usec();
+    *time  = t1 - t0;
 
-    printf("Step: Before action detach!\n");
     if(skip_Detach==0) { /* No '-S' option, so do not skip detach*/
         if (0 != snap_detach_action(act)) {
             VERBOSE0("Error: Can not detach Action: %x\n", ACTION_TYPE_EXAMPLE);
@@ -362,6 +343,12 @@ static int decompression_test(struct snap_card* dnc,
     void *src = NULL;
     void *dest = NULL;
 
+    unsigned long t0, t1, t2;
+    unsigned long runningTime0, runningTime1;
+    unsigned long pureRunningTime = 1;
+    double throughput;
+    double pureThroughput;
+
     /*prepare read data and write space*/
     
 	uint8_t *ibuff = NULL, *obuff = NULL;
@@ -371,14 +358,18 @@ static int decompression_test(struct snap_card* dnc,
     printf("1: The input file is: %s\n",inputfile);
     size = __file_size(inputfile);
     printf("The size of the input is %d \n",(int)size);
-    ibuff = snap_malloc(size);
-    if (ibuff == NULL){
-        printf("ibuff null");
-        return 1;
-    }
 
     printf("2: The output file is: %s\n",outputfile);
 	
+    // clock info
+    t0 = get_usec();
+
+    ibuff = snap_malloc(size);
+    if (ibuff == NULL){
+        printf("ibuff null\n");
+        return 1;
+    }
+
     rc = __file_read(inputfile, ibuff, size);
     set_size=get_decompression_length(ibuff); ///calculate the length of the output
     printf("The size of the output is %d \n",(int)set_size);
@@ -388,12 +379,14 @@ inorder to save the hardware resource, the garbage will also be transfered back,
 software side, always allocate a more memory for writing back. */
     obuff = snap_malloc(set_size+128);
     if (obuff == NULL){
-        printf("obuff null");
+        printf("obuff null\n");
         return 1;
     }
 
+#ifdef DEBUGINFO
     /* initial the memory to 'A' for debug */
     memset(obuff, (int)('A'), set_size+128);
+#endif
 
     if (rc < 0){
         printf("rc null");
@@ -402,10 +395,27 @@ software side, always allocate a more memory for writing back. */
     src = (void *)ibuff;
     dest = (void *)obuff;
 
-    rc = do_decompression(dnc, attach_flags, timeout, dest, src, size, set_size, skip_Detach, usec_sleep);
+    // clock info
+    t1 = get_usec();
+
+    rc = do_decompression(dnc, attach_flags, timeout, dest, src, size, set_size, skip_Detach, usec_sleep, &pureRunningTime);
     if (0 == rc) {
         printf("decompression finished");
     }
+
+    // clock info
+    t2 = get_usec();
+    runningTime0 = t2-t0;
+    runningTime1 = t2-t1;
+    pureThroughput = (double)set_size/1.024/1.024/(pureRunningTime);
+    throughput   = (double)set_size/1.024/1.024/runningTime1;
+
+    printf("For file %s(inputsize: %d, outputsize: %d), the running time is %ld (%ld) usec with(out) mem alloc\n Kernel running time is: %ld\n", inputfile, (int)size, (int)set_size, runningTime0, runningTime1, pureRunningTime);
+    printf("Output throughput is %f MB/s without mem alloc\n", throughput);
+    printf("Pure output throughput is %f MB/s\n", pureThroughput);
+
+
+
 	/******output the decompression result******/
     FILE * pFile;
     pFile=fopen(outputfile,"wb");
@@ -443,7 +453,7 @@ static void usage(const char *prog)
 
 static void printVersion()
 {
-	const char date_version[128] = "Decompressor 2019-02-12-v001";
+	const char date_version[128] = "Decompressor 2019-03-10-v001";
 	printf("**************************************************************\n");  // 58 *
 	printf("**     App Version: %-*s**\n", 40, date_version);                    // 18 chars, need 40 more
 	printf("**************************************************************\n\n");
@@ -456,7 +466,7 @@ int main(int argc, char *argv[])
     char inputfile[256]="testdata/test.snp";
     char outputfile[256]="testdata/test.txt";
     int skip_Detach = 0;
-    int usec_sleep = 10000;
+    int usec_sleep = 1;
     struct snap_card *dn;	/* lib snap handle */
     int start_delay = START_DELAY;
     int end_delay = END_DELAY;

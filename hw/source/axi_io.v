@@ -28,30 +28,13 @@ module axi_io
     output after_wr_data_sent_o,
     output after_first_wr_rqt_ack_o,
     output after_first_wr_rqt_o,
-    output after_first_rd_rqt_ack_o,
-    output after_first_rd_rqt_o,
     output after_start_o,
     output after_first_wr_ready_o,
     output after_first_wr_valid_o,
-    output[3:0] preparser_state_out_o,
-    output after_first_rd_ready_o,
-    output after_first_rd_valid_o,
-    output after_first_data_read_o,
-    output after_df_valid_o,
-    output after_preparser_valid_o,
-    output after_queue_token_valid_o,
-    output after_distributor_valid_o,
-    output[15:0] data_out_valid_in_o,
-    output[63:0] byte_valid_out_o,
-    output[3:0] distributor_state_out_o,
-    output[3:0] parser_state_out_o,
-    output[3:0] parser_state_check_out_o,
-    output[3:0] lit_fifo_wr_en_out_o,
-    output[3:0] lit_ramselect_o,
-    output[3:0] fifo_error_in_o,
+    output [25:0] process_cnt_o,
     
-    input[C_M_AXI_ADDR_WIDTH-1:0] src_addr,  //address to read from host memory
-    input[C_M_AXI_ADDR_WIDTH-1:0] des_addr, ///address to write result to host memory
+    input[C_M_AXI_ADDR_WIDTH-1:0] src_addr_i,  //address to read from host memory
+    input[C_M_AXI_ADDR_WIDTH-1:0] des_addr_i, ///address to write result to host memory
     input[31:0] compression_length,
     input[31:0] decompression_length,
 /////////ports to read data from host memory
@@ -112,19 +95,7 @@ decompressor d0(
     .after_wr_data_sent_o(after_wr_data_sent_o),
     .after_first_wr_ready_o(after_first_wr_ready_o),
     .after_first_wr_valid_o(after_first_wr_valid_o),
-    .preparser_state_out_o(preparser_state_out_o),
-    .after_df_valid_o(after_df_valid_o),
-    .after_preparser_valid_o(after_preparser_valid_o),
-    .after_queue_token_valid_o(after_queue_token_valid_o),
-    .after_distributor_valid_o(after_distributor_valid_o),
-    .data_out_valid_in_o(data_out_valid_in_o),
-    .byte_valid_out_o(byte_valid_out_o),
-    .distributor_state_out_o(distributor_state_out_o),
-    .parser_state_out_o(parser_state_out_o),
-    .parser_state_check_out(parser_state_check_out_o),
-    .lit_fifo_wr_en_out(lit_fifo_wr_en_out_o),
-    .lit_ramselect_out(lit_ramselect_o),
-    .fifo_error_in_out(fifo_error_in_o),
+    .process_cnt_o(process_cnt_o),
     
     .done(done_decompressor),
     .last(dma_wr_data_last),
@@ -136,7 +107,7 @@ io_control io_control0(
     .clk(clk),
     .rst_n(rst_n),
     
-    .src_addr(src_addr),
+    .src_addr(src_addr_i),
     .rd_req(dma_rd_req),
     .rd_req_ack(dma_rd_req_ack),
     .rd_len(dma_rd_len),
@@ -152,12 +123,10 @@ io_control io_control0(
     .after_first_wr_ack_o(after_first_wr_ack_o),
     .after_first_wr_rqt_ack_o(after_first_wr_rqt_ack_o),
     .after_first_wr_rqt_o(after_first_wr_rqt_o),
-    .after_first_rd_rqt_ack_o(after_first_rd_rqt_ack_o),
-    .after_first_rd_rqt_o(after_first_rd_rqt_o),
     
     .wr_valid(dma_wr_wvalid),
     .wr_ready(dma_wr_ready),
-    .des_addr(des_addr),
+    .des_addr(des_addr_i),
     .wr_req(dma_wr_req),
     .wr_req_ack(dma_wr_req_ack),
     .wr_len(dma_wr_len),
@@ -172,9 +141,6 @@ io_control io_control0(
 
 // for debug only
 reg after_start_r;
-reg after_first_rd_ready_r;
-reg after_first_rd_valid_r;
-reg after_first_data_read_r;
 
 always@(posedge clk)begin
     if(~rst_n)begin
@@ -184,29 +150,7 @@ always@(posedge clk)begin
     end
 end
 
-always@(posedge clk)begin
-    if(~rst_n)begin
-        after_first_rd_ready_r      <= 1'b0;
-        after_first_rd_valid_r      <= 1'b0;
-        after_first_data_read_r     <= 1'b0;
-    end else begin
-        if(dma_rd_data_valid)begin
-            after_first_rd_valid_r      <= 1'b1;
-        end
-        if(dma_rd_data_taken)begin
-            after_first_rd_ready_r      <= 1'b1;
-        end
-        if(dma_rd_data_valid && dma_rd_data_taken)begin
-            after_first_data_read_r     <= 1'b1;
-        end
-    end
-end
-
-
 assign after_start_o            = after_start_r;
-assign after_first_rd_ready_o   = after_first_rd_ready_r;
-assign after_first_rd_valid_o   = after_first_rd_valid_r;
-assign after_first_data_read_o  = after_first_data_read_r;
 // end of for debug only
 
 assign dma_rd_data_taken    = ~dec_almostfull;

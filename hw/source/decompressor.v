@@ -21,20 +21,7 @@ module decompressor(
     output after_wr_data_sent_o,
     output after_first_wr_ready_o,
     output after_first_wr_valid_o,
-    output[3:0] preparser_state_out_o,
-    output[3:0] distributor_state_out_o,
-    output[3:0] parser_state_out_o,
-    output[3:0] parser_state_check_out,
-    output[3:0] lit_fifo_wr_en_out,
-    output[3:0] lit_ramselect_out,
-    output[3:0] fifo_error_in_out,
-    output after_df_valid_o,
-    output after_preparser_valid_o,
-    output after_queue_token_valid_o,
-    output after_distributor_valid_o,
-    output[15:0] data_out_valid_in_o,
-    output[63:0] byte_valid_out_o,
-
+    output [25:0] process_cnt_o,
 	
 	output done,
 	output last,///whether it is the last 64B of a burst
@@ -201,11 +188,6 @@ wire[NUM_PARSER*16-1:0] ps_copy_ram;
 wire[NUM_PARSER*128-1:0] ps_copy_rd_out;
 wire[NUM_PARSER*256-1:0] ps_offset_out;
 
-wire[NUM_PARSER*4-1:0] parser_state_check;
-wire[NUM_PARSER*4-1:0] lit_fifo_wr_en;
-wire[NUM_PARSER*4-1:0] lit_ramselect;
-wire[NUM_PARSER*4-1:0] fifo_error;
-
 genvar ps_i; ///i for parsers
 generate 
 	for(ps_i=0;ps_i<NUM_PARSER;ps_i=ps_i+1)begin: generate_parsers
@@ -226,11 +208,6 @@ generate
 			.block_out_finish(dout_block_out_finish),  ///when 
 			.page_finish(ct_page_finish),
     
-            .parser_state_state_out(parser_state_check[ps_i*4+3:ps_i*4]),
-            .lit_fifo_wr_en(lit_fifo_wr_en[ps_i*4+3:ps_i*4]),
-            .lit_ramselect(lit_ramselect[ps_i*4+3:ps_i*4]),
-            .fifo_error_in(fifo_error[ps_i*4+3:ps_i*4]),
-	
 			.block_finish(ps_block_finish[ps_i]),
 			///for literal content 
 			.lit_rd(ps_lit_rd[ps_i*4+3:ps_i*4]),
@@ -252,11 +229,6 @@ generate
 		);
 	end
 endgenerate
-
-assign parser_state_check_out = parser_state_check[(NUM_PARSER*4-1):(NUM_PARSER*4-4)];
-assign lit_fifo_wr_en_out = lit_fifo_wr_en[(NUM_PARSER*4-1):(NUM_PARSER*4-4)];
-assign lit_ramselect_out = lit_ramselect[(NUM_PARSER*4-1):(NUM_PARSER*4-4)];
-assign fifo_error_in_out = fifo_error[(NUM_PARSER*4-1):(NUM_PARSER*4-4)];
 
 ////////generate lit_selector, copytoken selector and ram
 ////////when ram_i==0, generate the ram starts with address 0
@@ -327,7 +299,7 @@ data_out data_out0(
 	.rst_n(rst_n),
 	
 	.start(start),
-	///signal for writing data
+	// signal for writing data
 	.decompression_length(decompression_length),
 	.ready(wr_ready),
 	.valid_wr_in(dout_valid_wr_in),
@@ -335,10 +307,11 @@ data_out data_out0(
 	.lit_address(dout_lit_address),
 	.lit_valid(dout_lit_valid),
 	.page_finish(ct_page_finish),
+    .process_cnt_o(process_cnt_o),
 	
 	.block_out_finish(dout_block_out_finish),
 	.page_out_finish(dout_page_out_finish),
-	.cl_finish(dout_cl_finish),  ///if the clean is finished
+	.cl_finish(dout_cl_finish),  // if the clean is finished
 	.last(last),
 	.data_o(dout_dout),
 	.byte_valid_o(byte_valid_out),
@@ -373,49 +346,9 @@ always@(posedge clk) begin
     end
 end
 
-reg after_df_valid_r;
-reg after_preparser_valid_r;
-reg after_queue_token_valid_r;
-reg after_distributor_valid_r;
-reg[15:0] data_out_valid_in_r;
-reg[63:0] byte_valid_out_r;
-
-always@(posedge clk) begin
-    if(~rst_n)begin
-        data_out_valid_in_r         <= 16'b0;
-        byte_valid_out_r            <= 64'b0;
-        after_df_valid_r            <= 1'b0;
-        after_preparser_valid_r     <= 1'b0;
-        after_queue_token_valid_r   <= 1'b0;
-        after_distributor_valid_r   <= 1'b0;
-    end else begin
-        data_out_valid_in_r     <= dout_valid_wr_in;
-        byte_valid_out_r        <= byte_valid_out;
-        if(df_valid)begin
-            after_df_valid_r            <= 1'b1;
-        end
-        if(pre_validout)begin
-            after_preparser_valid_r     <= 1'b1;
-        end
-        if(qt_validout)begin
-            after_queue_token_valid_r   <= 1'b1;
-        end
-        if(dis_validout)begin
-            after_distributor_valid_r   <= 1'b1;
-        end
-    end
-end
-
 assign after_wr_data_sent_o    = after_wr_data_sent_r;
 assign after_first_wr_ready_o  = after_first_wr_ready_r;
 assign after_first_wr_valid_o  = after_first_wr_valid_r;
-
-assign data_out_valid_in_o          = data_out_valid_in_r;
-assign byte_valid_out_o             = byte_valid_out_r;
-assign after_df_valid_o             = after_df_valid_r;
-assign after_preparser_valid_o      = after_preparser_valid_r;
-assign after_queue_token_valid_o    = after_queue_token_valid_r;
-assign after_distributor_valid_o    = after_distributor_valid_r;
 
 /****************************************
 generate module for lit_selector, copytoken_selector, block ram and copy_selector blocks
@@ -616,6 +549,7 @@ control#
 /************************************************
 This module is used for debugging: control module
 *********************************************/
+/*
 preparser_check preparser_check0(
 	.clk(clk),
 	.rst_n(rst_n),
@@ -656,6 +590,7 @@ parser_check parser_check(
 
     .state_out(parser_state_out_o)
 );
+*/
 
 assign done=dout_page_out_finish;
 assign data_out=dout_dout;

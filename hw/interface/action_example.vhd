@@ -168,28 +168,10 @@ architecture action_example of action_example is
         signal after_wr_data_sent     : std_logic;
         signal after_first_wr_rqt_ack : std_logic;
         signal after_first_wr_rqt     : std_logic;
-        signal after_first_rd_rqt_ack : std_logic;
-        signal after_first_rd_rqt     : std_logic;
         signal after_start            : std_logic;
         signal after_first_wr_ready   : std_logic;
         signal after_first_wr_valid   : std_logic;
-        signal preparser_state        : std_logic_vector(3 downto 0);
-        signal after_first_rd_ready   : std_logic;
-        signal after_first_rd_valid   : std_logic;
-        signal after_first_data_read  : std_logic;
-        signal after_df_valid         : std_logic;
-        signal after_preparser_valid  : std_logic;
-        signal after_queue_token_valid: std_logic;
-        signal after_distributor_valid: std_logic;
-        signal data_out_valid_in      : std_logic_vector(15 downto 0);
-        signal byte_valid_out         : std_logic_vector(63 downto 0);
-        signal distributor_state      : std_logic_vector(3 downto 0);
-        signal parser_state           : std_logic_vector(3 downto 0);
-        signal parser_state_check     : std_logic_vector(3 downto 0);
-        signal lit_fifo_wr_en         : std_logic_vector(3 downto 0);
-        signal lit_ramselect          : std_logic_vector(3 downto 0);
-
-
+        signal process_cnt            : std_logic_vector(25 downto 0);
 
         signal dma_rd_req        : std_logic;
         signal dma_rd_req_ack    : std_logic;
@@ -281,8 +263,8 @@ architecture action_example of action_example is
 			done:		out std_logic;
 			idle:		out std_logic;
 			ready:		out std_logic;
-			src_addr:	in std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
-			des_addr:	in std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
+			src_addr_i:	in std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
+			des_addr_i:	in std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
 			compression_length:	in std_logic_vector(31 downto 0);
 			decompression_length: in std_logic_vector(31 downto 0);
 -- port for debugging
@@ -293,26 +275,10 @@ architecture action_example of action_example is
             after_wr_data_sent_o        : out std_logic;
             after_first_wr_rqt_ack_o    : out std_logic;
             after_first_wr_rqt_o        : out std_logic;
-            after_first_rd_rqt_ack_o    : out std_logic;
-            after_first_rd_rqt_o        : out std_logic;
             after_start_o               : out std_logic;
             after_first_wr_ready_o      : out std_logic;
             after_first_wr_valid_o      : out std_logic;
-            preparser_state_out_o       : out std_logic_vector(3 downto 0);
-            after_first_rd_ready_o      : out std_logic;
-            after_first_rd_valid_o      : out std_logic;
-            after_first_data_read_o     : out std_logic;
-            after_df_valid_o            : out std_logic;
-            after_preparser_valid_o     : out std_logic;
-            after_queue_token_valid_o   : out std_logic;
-            after_distributor_valid_o   : out std_logic;
-            data_out_valid_in_o         : out std_logic_vector(15 downto 0);
-            byte_valid_out_o            : out std_logic_vector(63 downto 0);
-            distributor_state_out_o     : out std_logic_vector(3 downto 0);
-            parser_state_out_o          : out std_logic_vector(3 downto 0);
-            parser_state_check_out_o    : out std_logic_vector(3 downto 0);
-            lit_fifo_wr_en_out_o        : out std_logic_vector(3 downto 0);
-            lit_ramselect_o             : out std_logic_vector(3 downto 0);
+            process_cnt_o               : out std_logic_vector(25 downto 0);
 
 --ports to read data from host memory
 			dma_rd_req:	out std_logic;
@@ -382,26 +348,10 @@ action_axi_slave_inst : entity work.action_axi_slave
         after_wr_data_sent_i        => after_wr_data_sent,
         after_first_wr_rqt_ack_i    => after_first_wr_rqt_ack,
         after_first_wr_rqt_i        => after_first_wr_rqt,
-        after_first_rd_rqt_ack_i    => after_first_rd_rqt_ack,
-        after_first_rd_rqt_i        => after_first_rd_rqt,
         after_start_i               => after_start,
         after_first_wr_ready_i      => after_first_wr_ready,
         after_first_wr_valid_i      => after_first_wr_valid,
-        preparser_state_i           => preparser_state,
-        after_first_rd_ready_i      => after_first_rd_ready,
-        after_first_rd_valid_i      => after_first_rd_valid,
-        after_first_data_read_i     => after_first_data_read,
-        after_df_valid_i            => after_df_valid,
-        after_preparser_valid_i     => after_preparser_valid,
-        after_queue_token_valid_i   => after_queue_token_valid,
-        after_distributor_valid_i   => after_distributor_valid,
-        data_out_valid_in_i         => data_out_valid_in,
-        byte_valid_out_i            => byte_valid_out,
-        distributor_state_i         => distributor_state,
-        parser_state_i              => parser_state,
-        parser_state_check_i        => parser_state_check,
-        lit_fifo_wr_en_i            => lit_fifo_wr_en,
-        lit_ramselect_i             => lit_ramselect,
+        process_cnt_i               => process_cnt,
         -- User ports ends
         S_AXI_ACLK  => action_clk,
         S_AXI_ARESETN   => action_rst_n,
@@ -532,29 +482,13 @@ axi_io0: axi_io
         after_wr_data_sent_o        => after_wr_data_sent,
         after_first_wr_rqt_ack_o    => after_first_wr_rqt_ack,
         after_first_wr_rqt_o        => after_first_wr_rqt,
-        after_first_rd_rqt_ack_o    => after_first_rd_rqt_ack,
-        after_first_rd_rqt_o        => after_first_rd_rqt,
         after_start_o               => after_start,
         after_first_wr_ready_o      => after_first_wr_ready,
         after_first_wr_valid_o      => after_first_wr_valid,
-        preparser_state_out_o       => preparser_state,
-        after_first_rd_ready_o      => after_first_rd_ready,
-        after_first_rd_valid_o      => after_first_rd_valid,
-        after_first_data_read_o     => after_first_data_read,
-        after_df_valid_o            => after_df_valid,
-        after_preparser_valid_o     => after_preparser_valid,
-        after_queue_token_valid_o   => after_queue_token_valid,
-        after_distributor_valid_o   => after_distributor_valid,
-        data_out_valid_in_o         => data_out_valid_in,
-        byte_valid_out_o            => byte_valid_out,
-        distributor_state_out_o     => distributor_state,
-        parser_state_out_o          => parser_state,
-        parser_state_check_out_o    => parser_state_check,
-        lit_fifo_wr_en_out_o        => lit_fifo_wr_en,
-        lit_ramselect_o             => lit_ramselect,
+        process_cnt_o               => process_cnt,
 		
-		src_addr			=>(reg_0x38&reg_0x34),
-		des_addr			=>(reg_0x40&reg_0x3c),
+		src_addr_i			=>(reg_0x38&reg_0x34),
+		des_addr_i			=>(reg_0x40&reg_0x3c),
 		compression_length	=>reg_0x44,
 		decompression_length=>reg_0x48,
 --ports to read data from host memory

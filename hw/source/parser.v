@@ -3,7 +3,7 @@ Module name: 	parser
 Author:			Jianyu Chen
 Email:			chenjy0046@gmail.com
 School:			Delft University of Technology
-Date:			10th Sept, 2018
+Date:			25th March, 2019
 Function:		This is the 2nd level parser. It will get slice(from the 1st level parser) 
 				from distributor and cut it into tokens. The tokens will be sorted into 2
 				kinds: literal and copy. These two kinds of token will be sent to the two kinds
@@ -25,11 +25,6 @@ module parser#(
 	input valid_in,
 	input block_out_finish,  
 	input page_finish,
-
-    output[3:0] parser_state_state_out,
-    output[3:0] lit_fifo_wr_en,
-    output[3:0] lit_ramselect,
-    output[3:0] fifo_error_in,
 	
 	output block_finish,
 	///for literal content 
@@ -128,6 +123,7 @@ assign copy_sep_3b=(offset_3b<=length_3b) & (offset_3b>2);
 
 //the signal below is for debug only, do not synthesize it
 reg debug_signal1;
+reg overflow_flag;
 
 always@(posedge clk)begin
 	
@@ -197,7 +193,9 @@ always@(posedge clk)begin
 			slice_req		<=1'b1;
 		end
 		
-		address_buff	<=address_buff_w;
+		address_buff	<= address_buff_w;
+		//record whether a overflow happens in this cycle
+		overflow_flag	<= address_buff_w[16]^overflow_record;
 		
 		if(start_lit_buff==1'b1)begin
 		//lza_z is the length of leading zero, 
@@ -376,89 +374,33 @@ always@(posedge clk)begin
 	will be regarded as the repitition of the first "abc"
 	*/
 	3'd4:begin  ///solve the offset<length
-		if(copy_offset_record<=copy_length_record)begin
-			copy_length<=copy_length;
-		end else begin
-			copy_length<=copy_length_record;
-			if(empty_flag)begin
-				state			<=3'd1;
-				slice_req		<=1'b1;
+		if(!stop_flag)begin    ///only work if not stop
+			if(copy_offset_record<=copy_length_record)begin
+				copy_length<=copy_length;
 			end else begin
-				state			<=3'd2;
+				copy_length<=copy_length_record;
+				if(empty_flag)begin ///if this is the last token, set request and jump to state 1
+					state			<=3'd1;
+					slice_req		<=1'b1;
+				end else if(overflow_flag)begin //check whether this is the last token of a 64KB block
+					state			<=3'd3;
+				end else begin
+					state			<=3'd2;
+				end
 			end
+			copy_address	<=copy_address+copy_offset_record;
+			copy_offset		<=copy_offset+copy_offset_record;
+			copy_length_record<=copy_length_record-copy_offset_record;
+			copy_valid		<=1'b1;			
+		end else begin
+			copy_valid		<=1'b0;
 		end
-		copy_address	<=copy_address+copy_offset_record;
-		copy_offset		<=copy_offset+copy_offset_record;
-		copy_length_record<=copy_length_record-copy_offset_record;		
 	end
 	
-//	default:begin	state	<=	3'b0;	end
+	default:begin	state	<=	3'b0;	end
 	endcase
 end
 
-parser_state_check parser_state_check0(
-	.clk(clk),
-	.rst_n(rst_n),
-	
-	.state_in(state),
-	.lit_valid(lit_valid),
-	.copy_valid(copy_valid),
-	.valid(valid_in),
-	
-	.state_out(parser_state_state_out)
-);
-
-reg [3:0] lit_fifo_wr_r;
-reg [3:0] lit_ramselect_fifo_in_r;
-reg [3:0] fifo_error_in_r;
-always@(posedge clk) begin
-    if(~rst_n) begin
-        lit_fifo_wr_r <= 4'b0;
-        fifo_error_in_r <= 4'b0;
-    end
-    else begin
-        if(lit_wr_w[35]) begin
-            lit_fifo_wr_r[3]    <= 1'b1;
-            if(lit_ram_select_w[15:12] == 4'b0) begin
-                fifo_error_in_r[3] <= 1'b1;
-            end
-            else begin
-                lit_ramselect_fifo_in_r[3] <= 1'b1;
-            end
-        end
-        if(lit_wr_w[26]) begin
-            lit_fifo_wr_r[2]    <= 1'b1;
-            if(lit_ram_select_w[11:8] == 4'b0) begin
-                fifo_error_in_r[2] <= 1'b1;
-            end
-            else begin
-                lit_ramselect_fifo_in_r[2] <= 1'b1;
-            end
-        end
-        if(lit_wr_w[17]) begin
-            lit_fifo_wr_r[1]    <= 1'b1;
-            if(lit_ram_select_w[7:4] == 4'b0) begin
-                fifo_error_in_r[1] <= 1'b1;
-            end
-            else begin
-                lit_ramselect_fifo_in_r[1] <= 1'b1;
-            end
-                // TODO: add a error state output.
-        end
-        if(lit_wr_w[8]) begin
-            lit_fifo_wr_r[0]    <= 1'b1;
-            if(lit_ram_select_w[3:0] == 4'b0) begin
-                fifo_error_in_r[0] <= 1'b1;
-            end
-            else begin
-                lit_ramselect_fifo_in_r[0] <= 1'b1;
-            end
-        end
-    end
-end
-assign lit_fifo_wr_en = lit_fifo_wr_r;
-assign lit_ramselect  = lit_ramselect_fifo_in_r;
-assign fifo_error_in  = fifo_error_in_r;
 
 LZA16 lza16(
 	.x({1'b0,tokenpos_buff[14:0]}), // input data
@@ -579,7 +521,7 @@ parser_copy #(
 	.length_in(copy_length),
 	.address_in(copy_address),	/////////[2:0]:shift [6:3]index for bram [15:7]: bram address 
 	.offset_in(copy_offset),
-	.valid_in(copy_valid & ~stop_flag_delay),
+	.valid_in(copy_valid),
 	
 	.address_out(copy_address_w), 		//address for 16 rams, each is 9-bits
 	.ram_select(copy_ram_select_w),     ///chose it wants to read from a ram

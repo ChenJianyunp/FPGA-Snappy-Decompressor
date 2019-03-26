@@ -52,6 +52,7 @@ entity action_axi_slave is
                 app_ready_i     : in  std_logic;
                 app_idle_i      : in  std_logic;
 
+        -- for debug only
                 after_done_i                : in std_logic;
                 after_all_wr_ack_i          : in std_logic;
                 after_rd_done_i             : in std_logic;
@@ -59,26 +60,11 @@ entity action_axi_slave is
                 after_wr_data_sent_i        : in std_logic;
                 after_first_wr_rqt_ack_i    : in std_logic;
                 after_first_wr_rqt_i        : in std_logic;
-                after_first_rd_rqt_ack_i    : in std_logic;
-                after_first_rd_rqt_i        : in std_logic;
                 after_start_i               : in std_logic;
                 after_first_wr_ready_i      : in std_logic;
                 after_first_wr_valid_i      : in std_logic;
-                after_first_rd_ready_i      : in std_logic;
-                after_first_rd_valid_i      : in std_logic;
-                after_first_data_read_i     : in std_logic;
-                preparser_state_i           : in std_logic_vector(3 downto 0);
-                after_df_valid_i            : in std_logic;
-                after_preparser_valid_i     : in std_logic;
-                after_queue_token_valid_i   : in std_logic;
-                after_distributor_valid_i   : in std_logic;
-                data_out_valid_in_i         : in std_logic_vector(15 downto 0);
-                byte_valid_out_i            : in std_logic_vector(63 downto 0);
-                distributor_state_i         : in std_logic_vector(3 downto 0);
-                parser_state_i              : in std_logic_vector(3 downto 0);
-                parser_state_check_i        : in std_logic_vector(3 downto 0);
-                lit_fifo_wr_en_i            : in std_logic_vector(3 downto 0);
-                lit_ramselect_i             : in std_logic_vector(3 downto 0);
+                process_cnt_i               : in std_logic_vector(25 downto 0);
+                
 
         -- Registers from 0x60 to 0x7c are reserved for the debug in this application 
 
@@ -223,26 +209,10 @@ architecture action_axi_slave of action_axi_slave is
 	signal after_wr_data_sent_q     : std_logic;
 	signal after_first_wr_rqt_ack_q : std_logic;
 	signal after_first_wr_rqt_q     : std_logic;
-	signal after_first_rd_rqt_ack_q : std_logic;
-	signal after_first_rd_rqt_q     : std_logic;
 	signal after_start_q            : std_logic;
     signal after_first_wr_ready_q   : std_logic;
     signal after_first_wr_valid_q   : std_logic;
-    signal preparser_state_q        : std_logic_vector(3 downto 0);
-    signal after_first_rd_ready_q   : std_logic;
-    signal after_first_rd_valid_q   : std_logic;
-    signal after_first_data_read_q  : std_logic;
-    signal after_df_valid_q            : std_logic;
-    signal after_preparser_valid_q     : std_logic;
-    signal after_queue_token_valid_q   : std_logic;
-    signal after_distributor_valid_q   : std_logic;
-    signal data_out_valid_in_q         : std_logic_vector(15 downto 0);
-    signal byte_valid_out_q            : std_logic_vector(63 downto 0);
-    signal distributor_state_q         : std_logic_vector(3 downto 0);
-    signal parser_state_q              : std_logic_vector(3 downto 0);
-    signal parser_state_check_q        : std_logic_vector(3 downto 0);
-    signal lit_fifo_wr_en_q            : std_logic_vector(3 downto 0);
-    signal lit_ramselect_q             : std_logic_vector(3 downto 0);
+    signal process_cnt_q            : std_logic_vector(25 downto 0);
 
 begin
 	-- I/O Connections assignments
@@ -624,26 +594,22 @@ begin
     -- Debugging Register
 --    slv_reg24 <= (others=>'0');
 --    slv_reg25 <= (others=>'0');
---    slv_reg26 <= (others=>'0');
---    slv_reg27 <= (others=>'0');
+    slv_reg26 <= (others=>'0');
+    slv_reg27 <= (others=>'0');
     slv_reg28 <= (others=>'0');
     slv_reg29 <= (others=>'0');
     slv_reg30 <= (others=>'0');
     slv_reg31 <= (others=>'0');
 
-    slv_reg25   <= lit_fifo_wr_en_q(3 downto 0) & parser_state_check_q(3 downto 0) & distributor_state_q(3 downto 0) & parser_state_q(3 downto 0) & data_out_valid_in_q(15 downto 0);
-    slv_reg26   <= byte_valid_out_q(63 downto 32);
-    slv_reg27   <= byte_valid_out_q(31 downto 0);
+    slv_reg25   <= slv_reg31(31 downto 26) & process_cnt_q(25 downto 0);
 
-    -- after_distributor_valid_q & after_queue_token_valid_q & after_preparser_valid_q
-    -- lit_ramselect_q[3:0]
-    -- after_df_valid_q & after_first_data_read_q & after_first_rd_ready_q & after_first_rd_valid_q
-    -- preparser_state_q
-    -- after_done_q & after_all_wr_ack_q & after_rd_done_q & after_first_wr_ack_q
-    -- after_wr_data_sent_q & after_first_wr_ready_q & after_first_wr_valid_q & after_first_wr_rqt_ack_q 
-    -- after_first_wr_rqt_q & after_first_rd_rqt_ack_q & after_first_rd_rqt_q & after_start_q 
+    -- after_df_valid_q & after_first_data_read_q 
+    -- after_first_rd_ready_q & after_first_rd_valid_q & after_done_q & after_all_wr_ack_q 
+    -- after_rd_done_q & after_first_wr_ack_q & after_wr_data_sent_q & after_first_wr_ready_q
+    -- after_first_wr_valid_q & after_first_wr_rqt_ack_q & after_first_wr_rqt_q & after_start_q 
     -- app_ready_i & idle_q & app_done_q & app_start_q;
-    slv_reg24 <= slv_reg28(31 downto 31) & after_distributor_valid_q & after_queue_token_valid_q & after_preparser_valid_q & lit_ramselect_q & after_df_valid_q & after_first_data_read_q & after_first_rd_ready_q & after_first_rd_valid_q & preparser_state_q & after_done_q & after_all_wr_ack_q & after_rd_done_q & after_first_wr_ack_q & after_wr_data_sent_q & after_first_wr_ready_q & after_first_wr_valid_q & after_first_wr_rqt_ack_q & after_first_wr_rqt_q & after_first_rd_rqt_ack_q & after_first_rd_rqt_q & after_start_q & app_ready_i & idle_q & app_done_q & app_start_q;
+    slv_reg24 <= slv_reg28(31 downto 14) & after_done_q & after_all_wr_ack_q & after_rd_done_q & after_first_wr_ack_q & after_wr_data_sent_q & after_first_wr_ready_q & after_first_wr_valid_q & after_first_wr_rqt_ack_q & after_first_wr_rqt_q & after_start_q & app_ready_i & idle_q & app_done_q & app_start_q;
+    
 
 	process( S_AXI_ACLK ) is
 	begin
@@ -656,26 +622,10 @@ begin
             after_wr_data_sent_q        <= '0';
             after_first_wr_rqt_ack_q    <= '0';
             after_first_wr_rqt_q        <= '0';
-            after_first_rd_rqt_ack_q    <= '0';
-            after_first_rd_rqt_q        <= '0';
             after_start_q               <= '0';
             after_first_wr_ready_q      <= '0';
             after_first_wr_valid_q      <= '0';
-            preparser_state_q           <= (others=>'0');
-            after_first_rd_ready_q      <= '0';
-            after_first_rd_valid_q      <= '0';
-            after_first_data_read_q     <= '0';
-            after_df_valid_q            <= '0';
-            after_preparser_valid_q     <= '0';
-            after_queue_token_valid_q   <= '0';
-            after_distributor_valid_q   <= '0';
-            data_out_valid_in_q         <= (others=>'0');
-            byte_valid_out_q            <= (others=>'0');
-            distributor_state_q         <= (others=>'0');
-            parser_state_q              <= (others=>'0');
-            parser_state_check_q        <= (others=>'0');
-            lit_fifo_wr_en_q            <= (others=>'0');
-            lit_ramselect_q             <= (others=>'0');
+            process_cnt_q               <= (others=>'0');
 	    else
             after_done_q                <= after_done_i;
             after_all_wr_ack_q          <= after_all_wr_ack_i;
@@ -684,26 +634,10 @@ begin
             after_wr_data_sent_q        <= after_wr_data_sent_i;
             after_first_wr_rqt_ack_q    <= after_first_wr_rqt_ack_i;
             after_first_wr_rqt_q        <= after_first_wr_rqt_i;
-            after_first_rd_rqt_ack_q    <= after_first_rd_rqt_ack_i;
-            after_first_rd_rqt_q        <= after_first_rd_rqt_i;
             after_start_q               <= after_start_i;
             after_first_wr_ready_q      <= after_first_wr_ready_i;
             after_first_wr_valid_q      <= after_first_wr_valid_i;
-            preparser_state_q           <= preparser_state_i;
-            after_first_rd_ready_q      <= after_first_rd_ready_i;
-            after_first_rd_valid_q      <= after_first_rd_valid_i;
-            after_first_data_read_q     <= after_first_data_read_i;
-            after_df_valid_q            <= after_df_valid_i;
-            after_preparser_valid_q     <= after_preparser_valid_i;
-            after_queue_token_valid_q   <= after_queue_token_valid_i;
-            after_distributor_valid_q   <= after_distributor_valid_i;
-            data_out_valid_in_q         <= data_out_valid_in_i;
-            byte_valid_out_q            <= byte_valid_out_i;
-            distributor_state_q         <= distributor_state_i;
-            parser_state_q              <= parser_state_i;
-            parser_state_check_q        <= parser_state_check_i;
-            lit_fifo_wr_en_q            <= lit_fifo_wr_en_i;
-            lit_ramselect_q             <= lit_ramselect_i;
+            process_cnt_q               <= process_cnt_i;
 	    end if;
 	  end if;
 	end process;

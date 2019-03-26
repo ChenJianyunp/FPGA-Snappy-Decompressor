@@ -39,8 +39,6 @@ module io_control(
     output after_first_wr_ack_o,
     output after_first_wr_rqt_ack_o,
     output after_first_wr_rqt_o,
-    output after_first_rd_rqt_ack_o,
-    output after_first_rd_rqt_o,
 
     input[31:0] decompression_length,
     input[34:0] compression_length
@@ -59,8 +57,6 @@ reg after_rd_done_r;
 reg after_first_wr_ack_r;
 reg after_first_wr_rqt_ack_r;
 reg after_first_wr_rqt_r;
-reg after_first_rd_rqt_ack_r;
-reg after_first_rd_rqt_r;
 
 always@(posedge clk)begin
     if(~rst_n)begin
@@ -68,8 +64,6 @@ always@(posedge clk)begin
         rd_state        <= 3'd0;
         read_done_r     <= 1'b0;
 
-        after_first_rd_rqt_r            <= 1'b0;
-        after_first_rd_rqt_ack_r        <= 1'b0;
         after_rd_done_r                 <= 1'b0;
     end else case(rd_state)
         3'd0:begin
@@ -98,13 +92,11 @@ always@(posedge clk)begin
                 rd_state                    <= 3'd2;
             end
             rd_req_r                <= 1'b1;
-            after_first_rd_rqt_r    <= 1'b1;
         end
         3'd2:begin//the state to read the the block
             //once get an acknowlege, read the next chunk
             if(rd_req_ack)begin
                 rd_address_r                    <= rd_address_r+64'd4096;
-                after_first_rd_rqt_ack_r        <= 1'b1;
                 if(compression_length_r[34:6]<=29'd64)begin
                     rd_state                    <= 3'd3;
                     rd_len_r                    <= {2'd0,compression_length_r[11:6]-6'd1};
@@ -119,7 +111,6 @@ always@(posedge clk)begin
             if(rd_req_ack)begin
                 rd_req_r                <= 1'b0;
                 rd_state                <= 3'd4;
-                after_first_rd_rqt_ack_r<= 1'b1;
             end
         end
         3'd4:begin
@@ -140,6 +131,7 @@ reg[7:0] wr_len_r;
 reg wr_req_r;
 reg[63:0] wr_req_count;
 reg done_out_r;
+reg[63:0] wr_done_count;    // a counter to count the write_done of the data write before the done signal is sent.
 always@(posedge clk)begin
     if(~rst_n)begin
         wr_state        <= 3'd0;
@@ -150,39 +142,23 @@ always@(posedge clk)begin
         after_first_wr_rqt_ack_r    <= 1'b0;
         after_first_wr_rqt_r        <= 1'b0;
         after_all_wr_ack_r          <= 1'b0;
-    end else case(wr_state)
-        3'd0:begin                // initial state
-            if(start)begin
-                //similar to the read case
-                if(decompression_length[5:0]!=6'b0)begin
-                    decompression_length_r[31:6]    <= decompression_length[31:6]+29'd1;
-                end else begin
-                    decompression_length_r[31:6]    <= decompression_length[31:6];
-                end
+    end else begin
+        case(wr_state)
+            3'd0:begin                // initial state
+                if(start)begin
+                    //similar to the read case
+                    if(decompression_length[5:0]!=6'b0)begin
+                        decompression_length_r[31:6]    <= decompression_length[31:6]+29'd1;
+                    end else begin
+                        decompression_length_r[31:6]    <= decompression_length[31:6];
+                    end
 
-                wr_state        <= 3'd1;
-                wr_req_r        <= 1'b0;
-                wr_address_r    <= des_addr;
+                    wr_state        <= 3'd1;
+                    wr_req_r        <= 1'b0;
+                    wr_address_r    <= des_addr;
+                end
             end
-        end
-        3'd1:begin                // state for sending the first 4K block
-            if(decompression_length_r[31:6]<=26'd64)begin
-                wr_len_r                        <= {2'b0,decompression_length_r[11:6]-6'd1};
-                decompression_length_r[31:6]    <= 26'd0;
-                wr_state                        <= 3'd3;
-            end else begin
-                wr_len_r                        <= 8'b11_1111;
-                decompression_length_r[31:6]    <= decompression_length_r[31:6]-26'd64;
-                wr_state                        <= 3'd2;
-            end
-            wr_req_r    <= 1'b1;
-            after_first_wr_rqt_r        <= 1'b1;
-        end
-        3'd2:begin                // state for sending the rest 4K blocks
-            if(wr_req_ack)begin
-                after_first_wr_rqt_ack_r    <= 1'b1;
-                wr_req_count    <= wr_req_count+64'b1;
-                wr_address_r    <= wr_address_r+64'd4096;
+            3'd1:begin                // state for sending the first 4K block
                 if(decompression_length_r[31:6]<=26'd64)begin
                     wr_len_r                        <= {2'b0,decompression_length_r[11:6]-6'd1};
                     decompression_length_r[31:6]    <= 26'd0;
@@ -190,32 +166,50 @@ always@(posedge clk)begin
                 end else begin
                     wr_len_r                        <= 8'b11_1111;
                     decompression_length_r[31:6]    <= decompression_length_r[31:6]-26'd64;
+                    wr_state                        <= 3'd2;
+                end
+                wr_req_r    <= 1'b1;
+                after_first_wr_rqt_r        <= 1'b1;
+            end
+            3'd2:begin                // state for sending the rest 4K blocks
+                if(wr_req_ack)begin
+                    after_first_wr_rqt_ack_r    <= 1'b1;
+                    wr_req_count    <= wr_req_count+64'b1;
+                    wr_address_r    <= wr_address_r+64'd4096;
+                    if(decompression_length_r[31:6]<=26'd64)begin
+                        wr_len_r                        <= {2'b0,decompression_length_r[11:6]-6'd1};
+                        decompression_length_r[31:6]    <= 26'd0;
+                        wr_state                        <= 3'd3;
+                    end else begin
+                        wr_len_r                        <= 8'b11_1111;
+                        decompression_length_r[31:6]    <= decompression_length_r[31:6]-26'd64;
+                    end
                 end
             end
-        end
-        3'd3:begin                // state for waiting the last wr_req_r is acknolodged
-            if(wr_req_ack)begin
-                after_first_wr_rqt_ack_r    <= 1'b1;
-                wr_req_count    <= wr_req_count+64'b1;
-                wr_req_r        <= 1'b0;
-                wr_state        <= 3'd4;
+            3'd3:begin                // state for waiting the last wr_req_r is acknolodged
+                if(wr_req_ack)begin
+                    after_first_wr_rqt_ack_r    <= 1'b1;
+                    wr_req_count    <= wr_req_count+64'b1;
+                    wr_req_r        <= 1'b0;
+                    wr_state        <= 3'd4;
+                end
             end
-        end
 
-        3'd4:begin
-            if(wr_done_count==wr_req_count && read_done_r) begin    //write request ack count equal to write data ack count and the read is done
-                done_out_r  <= 1'b1;
-                wr_state    <= 3'd0;
-                after_all_wr_ack_r          <= 1'b1;
+            3'd4:begin
+                if((wr_done_count==wr_req_count) && read_done_r) begin    //write request ack count equal to write data ack count and the read is done
+                    done_out_r  <= 1'b1;
+                    wr_state    <= 3'd0;
+                    after_all_wr_ack_r          <= 1'b1;
+                end
             end
-        end
 
-        default:wr_state    <= 3'd0;
-    endcase;
+            default:wr_state    <= 3'd0;
+        endcase;
+    end
 end
 
-// a counter to count the write_done of the data write before the done signal is sent.
-reg[63:0] wr_done_count;
+// a counter to count the write_done of the data write
+// before the done signal is sent.
 always@(posedge clk)
 begin
     if(~rst_n)
@@ -286,7 +280,5 @@ assign after_rd_done_o              = after_rd_done_r;
 assign after_first_wr_ack_o         = after_first_wr_ack_r;
 assign after_first_wr_rqt_ack_o     = after_first_wr_rqt_ack_r;
 assign after_first_wr_rqt_o         = after_first_wr_rqt_r;
-assign after_first_rd_rqt_ack_o     = after_first_rd_rqt_ack_r;
-assign after_first_rd_rqt_o         = after_first_rd_rqt_r;
 
 endmodule
