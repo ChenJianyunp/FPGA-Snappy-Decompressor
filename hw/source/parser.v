@@ -3,7 +3,7 @@ Module name: 	parser
 Author:			Jianyu Chen
 Email:			chenjy0046@gmail.com
 School:			Delft University of Technology
-Date:			25th March, 2019
+Date:			28th March, 2019
 Function:		This is the 2nd level parser. It will get slice(from the 1st level parser) 
 				from distributor and cut it into tokens. The tokens will be sorted into 2
 				kinds: literal and copy. These two kinds of token will be sent to the two kinds
@@ -229,7 +229,8 @@ always@(posedge clk)begin
 				if(length_left==5'd1||length_left==5'd2)begin	lit_valid<=1'b0; end  ///if this is the last byte or last two bytes, there is no literal content
 				else begin lit_valid<=1'b1; end
 				
-				lit_length		<=length_left-5'd2;  	//in this case, the length will be at least 60
+				//in this case, the length will be at least 60, the token is 2 bytes long, and the lit_length = length -1, so -3
+				lit_length		<=length_left-5'd3;  	
 				
 				lit_data		<={data_buff[127:16],16'b0};
 				lit_address     <=address_buff[15:0];
@@ -243,7 +244,8 @@ always@(posedge clk)begin
 				if(length_left==5'd1||length_left==5'd2||length_left==5'd3)begin	lit_valid<=1'b0; end  ///if this is the last byte or last two bytes or last three bytes, there is no literal content
 				else begin lit_valid<=1'b1; end
 				
-				lit_length		<=length_left-5'd3;		//in this case, the length will be at least 61
+				//in this case, the length will be at least 61, the token is 3 bytes long, and the lit_length = length -1, so -4
+				lit_length		<=length_left-5'd4;	
 				
 				lit_data		<={data_buff[119:16],24'b0};
 				lit_address     <=address_buff[15:0];
