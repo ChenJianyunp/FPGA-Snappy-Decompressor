@@ -6,7 +6,6 @@ module control#
 (
 	input clk,
 	input rst_n,
-	input start,
 	
 	input tf_empty, //token fifo
 	input[NUM_PARSER-1:0] ps_finish,

@@ -115,6 +115,7 @@ reg[2:0] wr_state;
 reg[7:0] wr_len_r;
 reg wr_req_r;
 reg[63:0] wr_req_count;
+reg[63:0] wr_done_count;    // a counter to count the write_done of the data write before the done signal is sent.
 reg done_out_r;
 always@(posedge clk)begin
     if(~rst_n)begin
@@ -179,11 +180,9 @@ always@(posedge clk)begin
         end
 
         default:wr_state    <= 3'd0;
-    endcase;
+    endcase
 end
 
-// a counter to count the write_done of the data write before the done signal is sent.
-reg[63:0] wr_done_count;
 always@(posedge clk)
 begin
     if(~rst_n)

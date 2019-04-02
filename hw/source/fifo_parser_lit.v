@@ -1,5 +1,10 @@
-module fifo_parser_lit(
-	input clk,
+module fifo_parser_lit
+#(
+    parameter WIDTH=85,
+    parameter DEPTH=8
+)
+(
+    input clk,
 	input srst,
 	
 //	.almost_full(),
@@ -16,7 +21,6 @@ module fifo_parser_lit(
 	output wr_rst_busy,
 	output rd_rst_busy
 );
-parameter WIDTH=85,DEPTH=8;
 reg [WIDTH-1:0]fifo_out;
 reg [WIDTH-1:0]ram[7:0];
 reg [3:0]read_ptr,write_ptr,counter;

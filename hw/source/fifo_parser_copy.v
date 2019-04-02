@@ -1,4 +1,10 @@
-module fifo_parser_copy(
+
+module fifo_parser_copy
+#(
+    parameter WIDTH=33,
+    parameter DEPTH=8
+)
+(
 	input clk,
 	input srst,
 	
@@ -16,7 +22,6 @@ module fifo_parser_copy(
 	output wr_rst_busy,
 	output rd_rst_busy
 );
-parameter WIDTH=33,DEPTH=8;
 reg [WIDTH-1:0]fifo_out;
 reg [WIDTH-1:0]ram[7:0];
 reg [3:0]read_ptr,write_ptr,counter;
