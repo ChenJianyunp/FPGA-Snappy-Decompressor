@@ -7,6 +7,8 @@ Date:			10th Sept, 2018
 Function:		The queue (you can also call it FIFO) to store the slice from the preparser (the first level parser)
 ****************************/
 ////format of input : | 18Byte data | 16bit token position | 16bit address | 1bit flag to check whether starts with literal content |
+`timescale 1ns/1ps
+
 module queue_token(
 	input clk,
 	input rst_n,
@@ -53,9 +55,9 @@ page_fifo pf0(
 	.rd_en(isempty?1'b0:rdreq),
 	.dout(q),
 	.full(),
+	.valid(),
 	.empty(isempty),
 	.prog_full(almost_full),
-	.valid(),
 	.wr_rst_busy(),
 	.rd_rst_busy()
 );

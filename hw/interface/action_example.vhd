@@ -153,7 +153,9 @@ architecture action_example of action_example is
         signal reg_0x3c         : std_logic_vector(31 downto 0);
         signal reg_0x40         : std_logic_vector(31 downto 0);
         signal reg_0x44         : std_logic_vector(31 downto 0);
-		signal reg_0x48         : std_logic_vector(31 downto 0);
+        signal reg_0x48         : std_logic_vector(31 downto 0);
+        signal reg_0x38_0x34    : std_logic_vector(63 downto 0);
+        signal reg_0x40_0x3c    : std_logic_vector(63 downto 0);
         signal app_start        : std_logic;
         signal app_done         : std_logic;
         signal app_ready        : std_logic;
@@ -424,6 +426,8 @@ action_dma_axi_master_inst : entity work.action_axi_master
         M_AXI_RREADY    => axi_host_mem_rready
     );
 
+reg_0x38_0x34 <= reg_0x38&reg_0x34;
+reg_0x40_0x3c <= reg_0x40&reg_0x3c;
 
 axi_io0: axi_io
 	generic map(
@@ -439,8 +443,8 @@ axi_io0: axi_io
 		idle				=>app_idle,
 		ready				=>app_ready,
 		
-		src_addr			=>(reg_0x38&reg_0x34),
-		des_addr			=>(reg_0x40&reg_0x3c),
+		src_addr			=>reg_0x38_0x34,
+		des_addr			=>reg_0x40_0x3c,
 		compression_length	=>reg_0x44,
 		decompression_length=>reg_0x48,
 --ports to read data from host memory

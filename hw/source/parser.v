@@ -9,6 +9,8 @@ Function:		This is the 2nd level parser. It will get slice(from the 1st level pa
 				kinds: literal and copy. These two kinds of token will be sent to the two kinds
 				of sub parsers (parser_lit and parser_copy).
 ****************************/
+`timescale 1ns/1ps
+
 module parser#(
 	parameter PARSER_NUM=0 //the number lable for parser, for debug only
 )

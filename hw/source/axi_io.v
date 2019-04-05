@@ -8,6 +8,8 @@ Description:    Top level of the axi protocal interface, containing the decompre
                 NOTICE: if you want to migrate the decompressor to other platform or other interface. Only the decompressor
                 module is needed.
 ********************************************/
+`timescale 1ns/1ps
+
 module axi_io
 #(
     parameter C_M_AXI_ADDR_WIDTH=64,

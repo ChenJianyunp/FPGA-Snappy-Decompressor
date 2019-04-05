@@ -8,6 +8,8 @@ Description:    The module to contol the input and output dataflow.
                 Each burst write will write 4K data, also except the last one
                 This module is to control the dataflow of axi protocal interface.
 ********************************************/
+`timescale 1ns/1ps
+
 module io_control(
     input clk,
     input rst_n,

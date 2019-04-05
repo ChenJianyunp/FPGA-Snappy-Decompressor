@@ -7,6 +7,8 @@ Date:			14th July, 2018
 Function:		The module to parse the literal token. Get the tokens from 2nd level parser (the parser module), parse them
 				into write BRAM-based command. And send the command back to parser
 ****************************/
+`timescale 1ns/1ps
+
 module parser_lit#(
 	parameter PARSER_NUM=0
 )

@@ -1,4 +1,6 @@
 ///data from read result will always be processed first
+`timescale 1ns/1ps
+
 module lit_selector
 #(
 	parameter NUM_PARSER=6,

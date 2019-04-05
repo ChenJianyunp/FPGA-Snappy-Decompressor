@@ -9,6 +9,8 @@ Function:		instantiate a BRAM block to store the decompression result.
 				copy command.
 ****************************/
 
+`timescale 1ns/1ps
+
 module ram_block
 #( parameter BLOCKNUM=4'b0   ///define the number of this block, from 0 to 15
 )
