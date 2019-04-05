@@ -6,6 +6,8 @@ School:			Delft University of Technology
 Date:			13th, July 2018
 Function:		generate a NUM_SEL-to-1 MUX with output bandwidth with NUM_WIDTH
 ****************************/
+`timescale 1ns/1ps
+
 module select
 #(
 	parameter NUM_SEL=16, 

@@ -10,6 +10,8 @@ Description:	This is a selector to select write command for 16 BRAMs in 16 ram_m
 				Each of this module is corresponding to one BRAM
 ********************************************/
 
+`timescale 1ns/1ps
+
 module copyread_selector(
 	input clk,
 	input rst_n,

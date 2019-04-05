@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module fifo_parser_lit
 #(
     parameter WIDTH=85,

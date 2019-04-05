@@ -6,6 +6,8 @@ School:			Delft University of Technology
 Date:			24th Nov, 2018
 Function:		The top level of the decompressor (without the axi protocal controller)
 ****************************/
+`timescale 1ns/1ps
+
 module decompressor(
 	input clk,
 	input rst_n,

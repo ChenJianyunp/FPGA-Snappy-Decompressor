@@ -15,6 +15,8 @@ Function:		The first level parser, get 16 Byte data per clock cycle. Parse the d
 				Each slice can be processed independently by the second level parser
 ****************************/
 
+`timescale 1ns/1ps
+
 module preparser(
 	input clk,
 	input rst_n,

@@ -18,21 +18,11 @@
 ##
 ############################################################################
 ############################################################################
+# Some addtional code generation or automation taks can be put here.
+#echo "                        action config says ACTION_ROOT is $ACTION_ROOT"
+#echo "                        action config says FPGACHIP is $FPGACHIP"
 
-if [ "$DDRI_USED" == "TRUE" ]; then
-  DDRI_FILTER="\-\- only for DDRI_USED!=TRUE"
-else
-  DDRI_FILTER="\-\- only for DDRI_USED=TRUE"
+if [ ! -d $ACTION_ROOT/ip/action_ip_dir ]; then
+        echo "                        Call create_action_ip.tcl to generate IPs"
+        vivado -quiet -mode batch -source $ACTION_ROOT/ip/create_action_ip.tcl -notrace -nojournal -tclargs $ACTION_ROOT $FPGACHIP
 fi
-
-if [ "$NVME_USED" == "TRUE" ]; then
-  NVME_FILTER="\-\- only for NVME_USED!=TRUE"
-else
-  NVME_FILTER="\-\- only for NVME_USED=TRUE"
-fi
-
-for vhdsource in *.vhd_source; do
-    vhdfile=`echo $vhdsource | sed 's/vhd_source$/vhd/'`
-    echo -e "\t                        generating $vhdfile"
-    grep -v "$DDRI_FILTER" $vhdsource | grep -v "$NVME_FILTER" > $vhdfile
-done

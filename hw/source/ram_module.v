@@ -9,6 +9,8 @@ Function:		The module to process the BRAM-based command. In each clock cycle, it
 				NOTICE: this module contains not only BRAM! but also circuit to process the command and FIFOs to store
 				the commands.
 ****************************/
+`timescale 1ns/1ps
+
 module ram_module#(
 	 parameter BLOCKNUM=4'b0,   ///define the number of this block, from 0 to 15
 	 HALFULL_THRESH=9'd24
