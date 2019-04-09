@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module read_result_fifo(
 	input clk,
 	input srst,

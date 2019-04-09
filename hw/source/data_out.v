@@ -6,6 +6,9 @@ Function:	Store the decompression result and output the result while doing decom
 			The content of the BRAM here will be the same as the BRAM in ram_block modules.
 			And the read port of this module is used to output data
 ***********************************/
+
+`timescale 1ns/1ps
+
 module data_out(
 	input clk,
 	input rst_n,

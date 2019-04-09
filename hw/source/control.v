@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 module control#
 (
 	parameter NUM_PARSER=6,

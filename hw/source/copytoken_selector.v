@@ -10,6 +10,9 @@ Function:		Each of this selector is corresponding to one ram_module (with one BR
 				the data from unsolved command FIFO will get a priority.
 				Round-Robin is the stategy to do the selection if multiple parsers have copy commands targeting this selector at the same time
 ****************************/
+
+`timescale 1ns/1ps
+
 module copytoken_selector
 #(
 	parameter NUM_PARSER=6,
