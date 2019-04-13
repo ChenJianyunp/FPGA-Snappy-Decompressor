@@ -28,7 +28,7 @@ module decompressor(
 );
 ///////parameters
 parameter 	NUM_PARSER=6,  //number of Parser (2nd level parser)
-			NUM_LOG=3,		//log2(NUM_PARSER)
+			NUM_LOG=3,		//log2(NUM_PARSER), at least 1
 			PARSER_MASK=6'b111111; //if set to 0, the corresponding parser will be disabled, for test only
 wire[1023:0] data_w;
 
@@ -493,7 +493,7 @@ control module
 
 control#
 (
-	.NUM_PARSER(6)
+	.NUM_PARSER(NUM_PARSER)
 )control0
 (
 	.clk(clk),

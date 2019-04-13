@@ -10,7 +10,7 @@ Function:		Get slice from queue_token module (a fifo to store the slices). And d
 `timescale 1ns/1ps
 
 module distributor
-#(	parameter NUM_PARSER=6,BASE_INIT=6'b0000_01
+#(	parameter NUM_PARSER=6,BASE_INIT = 1
 )
 (
 	input clk,
