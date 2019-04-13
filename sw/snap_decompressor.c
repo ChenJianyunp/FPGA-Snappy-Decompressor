@@ -222,6 +222,9 @@ static int do_decompression(struct snap_card *h,
     /* start the action and wait for it ends */
     rc = action_wait_idle(h, timeout, &td);
 
+    if (rc == 0 ) // No timeout
+    	printf("Decompression was done in %lf ms\n", (double)(td/1000.));
+
     if(skip_Detach==0) { /* No '-S' option, so do not skip detach*/
         if (0 != snap_detach_action(act)) {
             VERBOSE0("Error: Can not detach Action: %x\n", ACTION_TYPE_EXAMPLE);
@@ -317,7 +320,7 @@ software side, always allocate a more memory for writing back. */
 
     rc = do_decompression(dnc, attach_flags, timeout, dest, src, size, set_size, skip_Detach);
     if (0 == rc) {
-        printf("decompression finished");
+        printf("decompression finished - compression factor on this file was %d %% \n", (int)(100. - (100.*size)/set_size));
     }
 	/******output the decompression result******/
     FILE * pFile;
