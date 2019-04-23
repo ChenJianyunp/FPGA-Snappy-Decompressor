@@ -3,7 +3,7 @@ Module name: 	preparser
 Author:			Jianyu Chen
 Email:			chenjy0046@gmail.com
 School:			Delft University of Technology
-Date:			7th July, 2018
+Date:			23th April, 2018
 Function:		The first level parser, get 16 Byte data per clock cycle. Parse the data
 				into slice. Each slice contains the information of: 
 				1)current 16 Byte data
@@ -211,6 +211,7 @@ always@(posedge clk)begin
 		init_flag3<=1'b1;
 	end
 	
+	//check whether it is the first slice
 	if(valid_3&init_flag3)begin
 		token1_pos<=tokenpos_w[255:240];
 		token1_lit<=lit_length_w[271:255];
