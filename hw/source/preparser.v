@@ -3,7 +3,7 @@ Module name: 	preparser
 Author:			Jianyu Chen
 Email:			chenjy0046@gmail.com
 School:			Delft University of Technology
-Date:			7th July, 2018
+Date:			23th April, 2018
 Function:		The first level parser, get 16 Byte data per clock cycle. Parse the data
 				into slice. Each slice contains the information of: 
 				1)current 16 Byte data
@@ -171,7 +171,7 @@ end
 ///////4th pipeline
 wire[143:0] token_leng_w;
 wire[255:0]	tokenpos_w;
-wire[255:0] lit_length_w;
+wire[271:0] lit_length_w;
 wire[3:0] ds_pos;
 generate
 genvar i;
@@ -181,7 +181,7 @@ for(i=0;i<16;i=i+1)begin:generate_decoder
 	    .bytenum(15-i),
 		.tokenleng(token_leng_w[143-i*9:135-i*9]),
 		.tokenpos(tokenpos_w[255-16*i:240-16*i]),
-		.lit_leng(lit_length_w[255-16*i:240-16*i])
+		.lit_leng(lit_length_w[271-17*i:255-17*i])
 	);
 end
 endgenerate
@@ -196,7 +196,7 @@ reg init_flag4;  ////set to 1 when processing the first page
 reg[8:0] token1_length,token2_length,token3_length,token4_length,token5_length,token6_length,token7_length,token8_length,token9_length,token10_length,token11_length,token12_length,token13_length,token14_length,token15_length,token16_length;
 //store the position of the next token in this slice
 reg[15:0] token1_pos,token2_pos,token3_pos,token4_pos,token5_pos,token6_pos,token7_pos,token8_pos,token9_pos,token10_pos,token11_pos,token12_pos,token13_pos,token14_pos,token15_pos,token16_pos;
-reg[15:0] token1_lit,token2_lit,token3_lit,token4_lit,token5_lit,token6_lit,token7_lit,token8_lit,token9_lit,token10_lit,token11_lit,token12_lit,token13_lit,token14_lit,token15_lit,token16_lit;
+reg[16:0] token1_lit,token2_lit,token3_lit,token4_lit,token5_lit,token6_lit,token7_lit,token8_lit,token9_lit,token10_lit,token11_lit,token12_lit,token13_lit,token14_lit,token15_lit,token16_lit;
 reg valid_4;
 //reg rst_4;
 reg init_flag3;
@@ -211,9 +211,10 @@ always@(posedge clk)begin
 		init_flag3<=1'b1;
 	end
 	
+	//check whether it is the first slice
 	if(valid_3&init_flag3)begin
 		token1_pos<=tokenpos_w[255:240];
-		token1_lit<=lit_length_w[255:240];
+		token1_lit<=lit_length_w[271:255];
 		ds_pos0<=5'b11111;
 	end 
 	else if(valid_3)begin
@@ -250,10 +251,10 @@ If you have a better way, please contact me, I am very interesting about that.
 	token9_pos<=tokenpos_w[127:112];	token10_pos<=tokenpos_w[111:96];	token11_pos<=tokenpos_w[95:80];		token12_pos<=tokenpos_w[79:64];
 	token13_pos<=tokenpos_w[63:48];		token14_pos<=tokenpos_w[47:32];		token15_pos<=tokenpos_w[31:16];		token16_pos<=tokenpos_w[15:0];
 	
-	token2_lit<=lit_length_w[239:224];	token3_lit<=lit_length_w[223:208];	token4_lit<=lit_length_w[207:192];
-	token5_lit<=lit_length_w[191:176];    token6_lit<=lit_length_w[175:160];    token7_lit<=lit_length_w[159:144];    token8_lit<=lit_length_w[143:128];
-	token9_lit<=lit_length_w[127:112];    token10_lit<=lit_length_w[111:96];    token11_lit<=lit_length_w[95:80];     token12_lit<=lit_length_w[79:64];
-	token13_lit<=lit_length_w[63:48];     token14_lit<=lit_length_w[47:32];     token15_lit<=lit_length_w[31:16];     token16_lit<=lit_length_w[15:0];
+	token2_lit<=lit_length_w[254:238];	token3_lit<=lit_length_w[237:221];	token4_lit<=lit_length_w[220:204];
+	token5_lit<=lit_length_w[203:187];    token6_lit<=lit_length_w[186:170];    token7_lit<=lit_length_w[169:153];    token8_lit<=lit_length_w[152:136];
+	token9_lit<=lit_length_w[135:119];    token10_lit<=lit_length_w[118:102];    token11_lit<=lit_length_w[101:85];     token12_lit<=lit_length_w[84:68];
+	token13_lit<=lit_length_w[67:51];     token14_lit<=lit_length_w[50:34];     token15_lit<=lit_length_w[33:17];     token16_lit<=lit_length_w[16:0];
 		
 	data_buff4<=data_buff3;
 
@@ -272,7 +273,7 @@ end
 ////////////5th stage
 reg firstpage_flag;      	//////set to high if it is not the first page
 reg init_flag5;
-reg[15:0] lit_length;  ////length of literal starts from prevails 16B
+reg[16:0] lit_length;  ////length of literal starts from prevails 16B
 reg[15:0] tokenpos;
 reg[8:0] token1_length_2,token2_length_2,token3_length_2,token4_length_2,token5_length_2,token6_length_2,token7_length_2,token8_length_2,token9_length_2,token10_length_2,token11_length_2,token12_length_2,token13_length_2,token14_length_2,token15_length_2,token16_length_2;
 reg valid_5;
@@ -324,13 +325,13 @@ assign	tokenpos_final[1] =token0_temp[1]&token1_temp[1]&token2_temp[1] &token3_t
 assign	tokenpos_final[0] =token0_temp[0]&token1_temp[0]&token2_temp[0] &token3_temp[0] &token4_temp[0] &token5_temp[0] &token6_temp[0] &token7_temp[0]&token8_temp[0]&token9_temp[0]&token10_temp[0]&token11_temp[0]&token12_temp[0]&token13_temp[0]&token14_temp[0]&token15_temp[2];
 always@(posedge clk)begin
 	if(~rst_n)begin
-		lit_length<=16'b0;
+		lit_length<=17'b0;
 	end
-	else if(valid_4	&	(lit_length[15:4]==12'b0 || lit_length[15:0]==16'd16))begin  //check if lit_length>=16
-		lit_length<=(token1_lit&{16{tokenpos_final[15]}})|(token2_lit&{16{tokenpos_final[14]}})|(token3_lit&{16{tokenpos_final[13]}})|(token4_lit&{16{tokenpos_final[12]}})|(token5_lit&{16{tokenpos_final[11]}})|(token6_lit&{16{tokenpos_final[10]}})|(token7_lit&{16{tokenpos_final[9]}})|(token8_lit&{16{tokenpos_final[8]}})|(token9_lit&{16{tokenpos_final[7]}})|(token10_lit&{16{tokenpos_final[6]}})|(token11_lit&{16{tokenpos_final[5]}})|(token12_lit&{16{tokenpos_final[4]}})|(token13_lit&{16{tokenpos_final[3]}})|(token14_lit&{16{tokenpos_final[2]}})|(token15_lit&{16{tokenpos_final[1]}})|(token16_lit&{16{tokenpos_final[0]}});
+	else if(valid_4	&	(lit_length[16:4]==13'b0 || lit_length[16:0]==17'd16))begin  //check if lit_length>=16
+		lit_length<=(token1_lit&{17{tokenpos_final[15]}})|(token2_lit&{17{tokenpos_final[14]}})|(token3_lit&{17{tokenpos_final[13]}})|(token4_lit&{17{tokenpos_final[12]}})|(token5_lit&{17{tokenpos_final[11]}})|(token6_lit&{17{tokenpos_final[10]}})|(token7_lit&{17{tokenpos_final[9]}})|(token8_lit&{17{tokenpos_final[8]}})|(token9_lit&{17{tokenpos_final[7]}})|(token10_lit&{17{tokenpos_final[6]}})|(token11_lit&{17{tokenpos_final[5]}})|(token12_lit&{17{tokenpos_final[4]}})|(token13_lit&{17{tokenpos_final[3]}})|(token14_lit&{17{tokenpos_final[2]}})|(token15_lit&{17{tokenpos_final[1]}})|(token16_lit&{17{tokenpos_final[0]}});
 		current_lit_length	<=	{11'b0,lit_length[4:0]};  ///if lit_length <16, current_lit_length=lit_length
 	end else if(valid_4) begin
-		lit_length[15:4]	<=	lit_length[15:4]-12'b1; //calculate lit_length=lit_length-16
+		lit_length[16:4]	<=	lit_length[16:4]-12'b1; //calculate lit_length=lit_length-16
 		lit_length[3:0]		<=	lit_length[3:0];
 		current_lit_length	<=	16'd16;  				///if lit_length >=16, current_lit_length=16
 	end
@@ -349,7 +350,7 @@ always@(posedge clk)begin
 	token5_length_2<=token5_length;		token6_length_2<=token6_length;		token7_length_2<=token7_length;		token8_length_2<=token8_length;
 	token9_length_2<=token9_length;		token10_length_2<=token10_length;	token11_length_2<=token11_length;	token12_length_2<=token12_length;
 	token13_length_2<=token13_length;	token14_length_2<=token14_length;	token15_length_2<=token15_length;	token16_length_2<=token16_length;
-	start_lit_flag  <=(lit_length!=16'b0);  ///if lit_length>0, this 18B starts with literal content
+	start_lit_flag  <=(lit_length!=17'b0);  ///if lit_length>0, this 18B starts with literal content
 	
 	data_buff5<=data_buff4;
 
@@ -447,6 +448,7 @@ always@(posedge clk)begin
 	end
 	end
 	
+	//calculate the length after decompression for this slice, accumulate this length to get the address for the next slice
 	if(~rst_n)begin
 		sum_length		<=35'b0;
 		current_length	<=13'b0;
@@ -475,10 +477,12 @@ reg[143:0] data_buff7;
 always@(posedge clk)begin
 
 	case(garbage_cnt)
-	2'd0:begin tokenpos_7	<=	tokenpos_6;  				data_buff7	<=	data_buff6; 				end
-	2'd1:begin tokenpos_7	<=	{tokenpos_6[14:0],1'b0}; 	data_buff7	<=	{data_buff6[135:0],8'b0};	end
-	2'd2:begin tokenpos_7	<=	{tokenpos_6[13:0],2'b0}; 	data_buff7	<=	{data_buff6[127:0],16'b0};	end
-	2'd3:begin tokenpos_7	<=	{tokenpos_6[12:0],3'b0};	data_buff7	<=	{data_buff6[119:0],24'b0};	end
+	3'd0:begin tokenpos_7	<=	tokenpos_6;  				data_buff7	<=	data_buff6; 				end
+	3'd1:begin tokenpos_7	<=	{tokenpos_6[14:0],1'b0}; 	data_buff7	<=	{data_buff6[135:0],8'b0};	end
+	3'd2:begin tokenpos_7	<=	{tokenpos_6[13:0],2'b0}; 	data_buff7	<=	{data_buff6[127:0],16'b0};	end
+	3'd3:begin tokenpos_7	<=	{tokenpos_6[12:0],3'b0};	data_buff7	<=	{data_buff6[119:0],24'b0};	end
+	3'd4:begin tokenpos_7	<=	{tokenpos_6[11:0],4'b0};	data_buff7	<=	{data_buff6[111:0],32'b0};	end
+	3'd5:begin tokenpos_7	<=	{tokenpos_6[10:0],5'b0};	data_buff7	<=	{data_buff6[103:0],40'b0};	end
 	endcase
 	
 	garbage_cnt7<=garbage_cnt;
@@ -520,7 +524,7 @@ module decoder(
 	input[31:0] bytenum,
 	output[15:0] tokenpos,
 	output[8:0] tokenleng, ///length of token(including length of literal content) the length of token within this page
-	output[15:0] lit_leng,  ///length of literal content which will go to the next page,including extra token bytes
+	output[16:0] lit_leng,  ///length of literal content which will go to the next page,including extra token bytes
 	output[1:0] lit_minus   //length of extra token byte, minus it when calculate the length
 );
 reg[8:0] length;                    ////length of token which will be added to curent page
@@ -565,7 +569,7 @@ end
 
 assign tokenpos=tokenpos_reg;
 assign tokenleng=length;
-assign lit_leng=lit_leng_reg[17]?16'b0:lit_leng_reg[15:0]; //if the number is minus, set to zero
+assign lit_leng=lit_leng_reg[17]?17'b0:lit_leng_reg[16:0]; //if the number is minus, set to zero
 endmodule
 
 
