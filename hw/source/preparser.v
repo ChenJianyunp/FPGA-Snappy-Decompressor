@@ -403,7 +403,9 @@ always@(posedge clk)begin
 		start_lit_flag_6<=	start_lit_flag;		
 		data_buff6		<=	data_buff5;
 	
-///to calculate the length of garbage
+/*to calculate the length of garbage, on some slice, there are some useless bytes in the beginning, i*8
+first calculate the length of these bytes, and left shift the data to eliminate it, it is also possible
+to do the left shift in parsers, but that is not efficient*/
 	if(~init_flag5)begin
 	//the starting bytes presenting the length of data will be regarded as garbage here
 		casex({data_buff5[143],data_buff5[135],data_buff5[127],data_buff5[119],data_buff5[111]})
@@ -417,6 +419,8 @@ always@(posedge clk)begin
 		lit_garbage<=1'b0;
 	end
 	else if(valid_5)begin
+	/*some bytes are already used in the last slice as the remaining bytes of a token,
+	these bytes are also useless here and thus regarded as garbage*/
 		garbage_cnt	<= garbage_cnt_next;
 		lit_garbage	<=lit_garbage_next;
 	end
@@ -476,6 +480,7 @@ reg[143:0] data_buff7;
 ///////compression_length
 always@(posedge clk)begin
 
+///left shift to eliminate the garbage bytes
 	case(garbage_cnt)
 	3'd0:begin tokenpos_7	<=	tokenpos_6;  				data_buff7	<=	data_buff6; 				end
 	3'd1:begin tokenpos_7	<=	{tokenpos_6[14:0],1'b0}; 	data_buff7	<=	{data_buff6[135:0],8'b0};	end
