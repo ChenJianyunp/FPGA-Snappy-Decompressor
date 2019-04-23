@@ -61,4 +61,5 @@ Update log
 | Jianyu Chen | 05-02-2019: Fix the bug in checking the empty of decompressor when the file is very small\
 | Jian Fang   | 05-03-2019: Fix the bug of input/output of 'data_in' and 'wr_en' signals in the parser fifo (both lit and copy)\
 | Jianyu Chen | 28-03-2019: Fix the bug on the wrong literature size on parser\
-| Jianyu Chen | 14-04-2019: Fix the bug in passing the wrong NUM_PARSER to control module
+| Jianyu Chen | 14-04-2019: Fix the bug in passing the wrong NUM_PARSER to control module\
+| Jianyu Chen | 23-04-2019: Fix a bug: the length of lit_length is too short
