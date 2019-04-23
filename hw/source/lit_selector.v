@@ -52,7 +52,11 @@ always@(posedge clk)begin
 		base	<= grant_w;
 	end 
 	else begin
-		base	<= {grant_w[NUM_PARSER-2:0],grant_w[NUM_PARSER-1]}; ///left shift
+		if(NUM_PARSER == 1)begin //if there is only once parser, no need to shift
+			base	<= grant_w;
+		end else begin
+			base	<= {grant_w[NUM_PARSER-2:0],grant_w[NUM_PARSER-1]}; ///left shift
+		end
 	end
 end
 
