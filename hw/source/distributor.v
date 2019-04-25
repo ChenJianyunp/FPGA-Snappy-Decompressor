@@ -8,7 +8,7 @@ Function:		Get slice from queue_token module (a fifo to store the slices). And d
 				one of the idle parsers (2nd level parser) using Round-Robin strategy
 ****************************/
 module distributor
-#(	parameter NUM_PARSER=6,BASE_INIT=6'b0000_01
+#(	parameter NUM_PARSER=6,BASE_INIT=1
 )
 (
 	input clk,

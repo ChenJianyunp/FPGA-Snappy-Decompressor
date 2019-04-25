@@ -1,7 +1,7 @@
 module control#
 (
 	parameter NUM_PARSER=6,
-	PARSER_ALLONE=6'b111111
+	PARSER_ALLONE=16'hffff
 )
 (
 	input clk,
@@ -24,7 +24,7 @@ reg all_empty;
 reg[15:0] all_empty_delay;
 reg page_input_finish_flag;
 always@(posedge clk)begin
-	if(ps_empty==PARSER_ALLONE & ram_empty==16'hffff & tf_empty)begin
+	if((ps_empty==PARSER_ALLONE[NUM_PARSER-1:0]) & ram_empty==16'hffff & tf_empty)begin
 		all_empty<=1'b1;
 	end else begin
 		all_empty<=1'b0;

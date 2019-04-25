@@ -529,7 +529,7 @@ control module
 
 control#
 (
-	.NUM_PARSER(6)
+	.NUM_PARSER(NUM_PARSER)
 )control0
 (
 	.clk(clk),
