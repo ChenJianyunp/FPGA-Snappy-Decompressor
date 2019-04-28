@@ -30,7 +30,7 @@ always@(posedge clk)begin
 		all_empty<=1'b0;
 	end
 	
-	if(~rst_n)begin
+	if(start)begin
 		page_input_finish_flag<=1'b0;
 	end if(page_input_finish) begin
 		page_input_finish_flag<=1'b1;
@@ -71,17 +71,19 @@ always@(posedge clk)begin
 	end
 	*/
 	3'd3:begin //wait for the page clean finished 
+			//when all data in a file (not 64KB block) is processed, set page_finish_r to high to inform other module
 			if(all_empty_delay==16'hffff & all_empty==1'b1 & tf_empty)begin
 				page_finish_r<=1'b1;
 			end
-			else if(cl_finish)begin
-				state<=3'd4;
-				page_finish_r<=1'b0;
+			//after all the valid bits in the BRAMs are cleaned, go to next state
+			if(cl_finish)begin
+				state	<= 3'd4;
 			end
 	end
-	3'd4:begin //
-		block_finish_r<=1'b0;
-		state<=3'd0;
+	3'd4:begin //reset the signals and go back to initial state
+		block_finish_r	<=1'b0;
+		state			<=3'd0;
+		page_finish_r	<=1'b0;
 	end
 	default:state<=3'd0;
 	endcase

@@ -144,6 +144,7 @@ always@(posedge clk)begin
 		end
 		wr_address	<=3'd0;
 	end
+	
 	3'd4:begin  ////clean all the valid bit in BRAM
 		wr_address	<=wr_address+9'd1;
 		valid_inverse	<=1'b0;
@@ -165,7 +166,7 @@ reg[9:0] rd_address_lowerl;
 the lower 512 bits and and the higher 512 bits*/
 always@(*)begin
 	//if the rd_address[0] is 0, read the lower 512 bits, and the other way around
-	if(((rd_address[0]==1'b0&valid_lower)|(rd_address[0]==1'b1&valid_upper))&ready)begin
+	if(((rd_address[0]==1'b0&valid_lower)|(rd_address[0]==1'b1&valid_upper))&ready&rd_valid)begin
 		rd_address_w	<=rd_address+26'b1;
 		valid_out_w<=1'b1;		
 	end else begin
@@ -197,6 +198,7 @@ reg[8:0] lit_address_buff;
 reg[7:0] lit_valid_buff;
 reg[7:0] lit_byte_valid;
 wire[7:0] dina_valid_w;
+wire[8:0] addra_w;
 always@(posedge clk)begin
 	if(~rst_n)begin
 		valid_wr_buff	<= 1'b0;
@@ -210,10 +212,11 @@ always@(posedge clk)begin
 	lit_byte_valid	<=lit_valid[8*ram_i+7:8*ram_i];
 	data_out_buff	<=data_w;
 end
-assign dina_valid_w=wr_flag?8'b0:lit_valid_buff;
-
+//if it is in the state 4, make all valid bits 0, and give the wr_address to the BRAM
+assign dina_valid_w = wr_flag?8'b0:lit_valid_buff;
+assign addra_w		= wr_flag?wr_address:lit_address_buff;
 blockram result_ram0(
-	.addra(lit_address_buff),
+	.addra(addra_w),
 	.clka(clk),
 	.dina({dina_valid_w[7],lit_buff[63:56],dina_valid_w[6],lit_buff[55:48],dina_valid_w[5],lit_buff[47:40],dina_valid_w[4],lit_buff[39:32],dina_valid_w[3],lit_buff[31:24],dina_valid_w[2],lit_buff[23:16],dina_valid_w[1],lit_buff[15:8],dina_valid_w[0],lit_buff[7:0]}),
 	.ena(wr_flag|valid_wr_buff),

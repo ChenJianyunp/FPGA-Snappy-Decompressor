@@ -78,7 +78,7 @@ in order to do so, always buffer a 16-byte and wait for the next 16-byte data
 	data_buff2_1[143:16]<=data_buff2;
 	data_buff2_1[15:0]<=data_buff1[127:112];
 	
-	if(~rst_n)begin 
+	if(start)begin 
 		init_flag<=1'b0;
 	end else if(valid_1)begin
 		init_flag<=1'b1;
@@ -93,7 +93,7 @@ an extra valid signal for the last slice. After all the data is passed, make fin
 		data_cnt_max		<= compression_length_in - 35'd16;
 	end
 	
-	if(~rst_n)begin
+	if(start)begin
 		data_cnt		<=30'b0;
 		last_flag		<=1'b0;
 		pos_final		<=16'hffff;
@@ -113,14 +113,14 @@ an extra valid signal for the last slice. After all the data is passed, make fin
 		last_flag<=1'b0;
 	end
 	
-	if(~rst_n)begin   //after the last data passed, make garbage invalid
+	if(start)begin   //after the last data passed, make garbage invalid
 		finish_flag	<=1'b1;
 	end else if(last_flag_delay) begin
 		finish_flag	<=1'b0;
 	end
 	
 	///some signals has to be delayed for a clock cycle, since the last slice will come in the next cycle
-	if(~rst_n)begin
+	if(start)begin
 		last_flag_delay	<= 1'b0;
 		pos_final_delay	<= 16'hffff;
 	end else begin
@@ -128,9 +128,8 @@ an extra valid signal for the last slice. After all the data is passed, make fin
 		pos_final_delay	<= pos_final2;
 	end
 	
-	if(~rst_n)begin
+	if(start)begin
 		pos_final	<=16'hffff;
-		
 	end else begin
 		/*since the last 16-byte block may be not full, there can be some garbage at the end of the last slice.
 		These garbage data can be misunderstook as token and cause some unpredictable consequency, so i set pos_final
@@ -205,7 +204,7 @@ reg[4:0] ds_pos0;
 reg[15:0] pos_final4;  ///token pos of final
 always@(posedge clk)begin
 	
-	if(~rst_n)begin
+	if(start)begin
 		init_flag3<=1'b0;
 	end else if(valid_3)begin
 		init_flag3<=1'b1;
@@ -324,7 +323,7 @@ assign	tokenpos_final[2] =token0_temp[2]&token1_temp[2]&token2_temp[2] &token3_t
 assign	tokenpos_final[1] =token0_temp[1]&token1_temp[1]&token2_temp[1] &token3_temp[1] &token4_temp[1] &token5_temp[1] &token6_temp[1] &token7_temp[1]&token8_temp[1]&token9_temp[1]&token10_temp[1]&token11_temp[1]&token12_temp[1]&token13_temp[1]&token14_temp[1];
 assign	tokenpos_final[0] =token0_temp[0]&token1_temp[0]&token2_temp[0] &token3_temp[0] &token4_temp[0] &token5_temp[0] &token6_temp[0] &token7_temp[0]&token8_temp[0]&token9_temp[0]&token10_temp[0]&token11_temp[0]&token12_temp[0]&token13_temp[0]&token14_temp[0]&token15_temp[2];
 always@(posedge clk)begin
-	if(~rst_n)begin
+	if(start)begin
 		lit_length<=17'b0;
 	end
 	else if(valid_4	&	(lit_length[16:4]==13'b0 || lit_length[16:0]==17'd16))begin  //check if lit_length>=16
@@ -336,7 +335,7 @@ always@(posedge clk)begin
 		current_lit_length	<=	16'd16;  				///if lit_length >=16, current_lit_length=16
 	end
 	
-	if(~rst_n)begin
+	if(start)begin
 		tokenpos_next<=2'b01;
 	end
 	else if(valid_4)begin
@@ -354,7 +353,7 @@ always@(posedge clk)begin
 	
 	data_buff5<=data_buff4;
 
-	if(~rst_n)begin
+	if(start)begin
 		firstpage_flag	<=	1'b0;
 	end 
 	else if(valid_4)begin
@@ -453,7 +452,7 @@ to do the left shift in parsers, but that is not efficient*/
 	end
 	
 	//calculate the length after decompression for this slice, accumulate this length to get the address for the next slice
-	if(~rst_n)begin
+	if(start)begin
 		sum_length		<=35'b0;
 		current_length	<=13'b0;
 	end 
