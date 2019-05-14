@@ -14,29 +14,33 @@ The decompressor can perform as a box that processes on the input stream and out
 All metadata and data communication is under ready/valid handshake protocol. \
 
 The decompressor uses the following interface: \
-    input clk, \
-    input rst_n, \
+    input clk, // the clock signal
+    input rst_n, // the reset signal
 
-    output last,  // Whether the data is the last one in a burst \
-    output done,  // Whether the decompression is done \
-    input  start, // Start the decompressor after the compression_length and decompression_length is set \
-                  // The user should set it to 1 for starting the decompressor, and need to set it back to 0 after 1 cycle \
+    output last,  // Whether the data is the last one in a burst
+    output done,  // Whether the decompression is done
+    input  start, // Start the decompressor after the compression_length and decompression_length is set
+                  // The user should set it to 1 for starting the decompressor, and need to set it back to 0 after 1 cycle
 
-    input[511:0] in_data, //The compressed data \
-    input in_data_valid, //Whether or not the data on the in_data port is valid. \
-    output in_data_ready, //Whether or not the decompressor is ready to receive data on its in_data port \
+    input[511:0] in_data, //The compressed data
+    input in_data_valid, //Whether or not the data on the in_data port is valid.
+    output in_data_ready, //Whether or not the decompressor is ready to receive data on its in_data port
 
-    input[34:0] compression_length,     //length of the data before decompression (compressed data) \
-    input[31:0] decompression_length,   //length of the data after decompression (uncompressed data) \
-    input in_metadata_valid, //Whether or not the data on the compression_length and decompression_length ports is valid. \
-    output in_metadata_ready, //Whether or not the decompressor is ready to receive data on its compression_length and decompression_length ports. \
+    input[34:0] compression_length,     //length of the data before decompression (compressed data)
+    input[31:0] decompression_length,   //length of the data after decompression (uncompressed data)
+    input in_metadata_valid, //Whether or not the data on the compression_length and decompression_length ports is valid.
+    output in_metadata_ready, //Whether or not the decompressor is ready to receive data on its compression_length and decompression_length ports.
 
-    output[511:0] out_data, //The decompressed data \
-    output out_data_valid, //Whether or not the data on the out_data port is valid \
-    output[63:0] out_data_byte_valid, //Which bytes of the output is valid \
-    input out_data_ready //Whether or not the component following the decompressor is ready to receive data. \
+    output[511:0] out_data, //The decompressed data
+    output out_data_valid, //Whether or not the data on the out_data port is valid
+    output[63:0] out_data_byte_valid, //Which bytes of the output is valid
+    input out_data_ready //Whether or not the component following the decompressor is ready to receive data.
 
-A communication protocol should follow a few step. (1) Set metadata -> (2) Set "start" -> (3) stream data in for decompression -> (4) After "done" signal return, a new decompression can be processed and start again from (1).\
+A communication protocol should follow a few step. \
+(1) Set metadata (compression_length and decompression_length)
+(2) Set "start" 
+(3) stream data in for decompression
+(4) After "done" signal return, a new decompression can be processed and start again from Step (1).
 
 
 Working platform
