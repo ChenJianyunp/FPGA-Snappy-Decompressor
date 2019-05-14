@@ -14,9 +14,9 @@ The decompressor can perform as a box that processes on the input stream and out
 All metadata and data communication is under ready/valid handshake protocol. \
 
 The decompressor uses the following interface: \
-    input clk, // the clock signal
-    input rst_n, // the reset signal
 
+    input clk,    // the clock signal
+    input rst_n,  // the reset signal
     output last,  // Whether the data is the last one in a burst
     output done,  // Whether the decompression is done
     input  start, // Start the decompressor after the compression_length and decompression_length is set
@@ -37,10 +37,10 @@ The decompressor uses the following interface: \
     input out_data_ready //Whether or not the component following the decompressor is ready to receive data.
 
 A communication protocol should follow a few step. \
-(1) Set metadata (compression_length and decompression_length)
-(2) Set "start" 
-(3) stream data in for decompression
-(4) After "done" signal return, a new decompression can be processed and start again from Step (1).
+(1) Set metadata (compression_length and decompression_length)\
+(2) Set "start" \
+(3) stream data in for decompression\
+(4) After "done" signal return, a new decompression can be processed and start again from Step (1).\
 
 
 Working platform
