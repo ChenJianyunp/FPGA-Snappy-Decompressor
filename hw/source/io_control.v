@@ -134,7 +134,8 @@ always@(posedge clk)begin
                 end else begin
                     decompression_length_r[31:6]    <= decompression_length[31:6];
                 end
-
+				
+				wr_req_count    <= 64'b0;
                 wr_state        <= 3'd1;
                 wr_req_r        <= 1'b0;
                 wr_address_r    <= des_addr;
