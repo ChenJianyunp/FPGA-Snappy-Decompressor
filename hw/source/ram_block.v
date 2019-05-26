@@ -66,30 +66,28 @@ reg[7:0] lit_byte_enable;
 reg[8:0] cl_address;
 reg cl_flag;
 reg[2:0] cl_state;
-reg cl_finish;
 reg valid_inverse; ///
 always@(*)begin
-	valid_wr_buff	<=valid_wr_in;
+	
 	lit_data_buff	<=lit_in;
-	lit_address_buff<=lit_address;
+	lit_address_buff<=cl_flag?cl_address:lit_address;
+	valid_wr_buff	<=cl_flag?1'b1:valid_wr_in;
 	lit_valid_buff	<=cl_flag?8'b0:(lit_valid^{8{valid_inverse}});
 	lit_byte_enable	<=cl_flag?8'hff:lit_valid;
 end
 
+
 always@(posedge clk)begin
 	if(~rst_n)begin
 		cl_state	<= 3'd0;
-		cl_flag		<=1'b0;
+		cl_flag		<= 1'b0;
 	end else
 	case(cl_state)
 	3'd0:begin///idle state
-		cl_address	<=9'b0;
-		cl_finish	<=1'b0;		
+		cl_address	<=9'b0;	
 		if(page_finish)begin
 			cl_state	<=3'd1;
 			cl_flag		<=1'b1;
-		end else begin
-			cl_flag		<=1'b0;
 		end
 	end
 	3'd1:begin  ///increasing address to clean
@@ -97,12 +95,11 @@ always@(posedge clk)begin
 		if(cl_address==9'd511)begin
 			cl_state	<=3'd2;
 			cl_flag		<=1'b0;
-			cl_finish	<=1'b1;
 		end		
 	end
 	3'd2:begin
-		cl_finish	<=1'b0;
 		cl_state	<=3'd0;
+		cl_flag		<=1'b0;
 	end
 	default:cl_state<=3'd0;
 	endcase
@@ -142,8 +139,6 @@ reg[8:0] copy_address_buff2;
 reg[7:0] copy_valid_buff2;
 reg[15:0] copy_offset_buff2;
 reg[15:0] des_address2;    ///address of the destination
-reg forward1; ///set to one if forwarding is used
-reg[1:0] forward2;
 always@(posedge clk)begin
 	if(~rst_n)begin
 		valid_rd_buff2		<= 1'b0;
@@ -156,18 +151,6 @@ always@(posedge clk)begin
 	copy_offset_buff2	<=copy_offset_buff;
 	
 	des_address2		<={copy_address_buff,BLOCKNUM,3'b0}+copy_offset_buff;
-	
-	if((copy_offset_buff==5'd1)&copy_valid_buff[7])begin  ////////if the offset is 1 and read the highest byte, use forwarding
-		forward1	<=1'b1;
-	end else begin
-		forward1	<=1'b0;
-	end
-	
-	if(copy_offset_buff==5'd2)begin
-		forward2	<=copy_valid_buff[7:6];
-	end else begin
-		forward2	<=2'b0;
-	end
 end
 
 //3rd stage(fetch read result in this stage)
@@ -191,21 +174,9 @@ always@(posedge clk)begin
 	copy_offset_buff3	<= copy_offset_buff2;
 	des_address3		<= des_address2;	
 	
-	///implementing the forwarding here, if the offset==1 or offset==2 (in this case the offset must be less than length, the length of copy is at leat 4)
-	if(forward1)begin
-		data_3			<={copy_data_w[63:56],copy_data_w[63:56],copy_data_w[63:56],copy_data_w[63:56],copy_data_w[63:56],copy_data_w[63:56],copy_data_w[63:56],copy_data_w[63:56]};
-		hit_3				<={8{copy_valid_w[7]}} & copy_valid_buff2;
-	end else begin
-		if(forward2[1])begin data_3[63:56]<=copy_data_w[63:56];	data_3[47:40]<=copy_data_w[63:56]; data_3[31:24]<=copy_data_w[63:56]; data_3[15:8]<=copy_data_w[63:56];
-			{hit_3[7],hit_3[5],hit_3[3],hit_3[1]}	<={4{copy_valid_w[7]}} & {copy_valid_buff2[7],copy_valid_buff2[5],copy_valid_buff2[3],copy_valid_buff2[1]};	end
-		else begin  data_3[63:56]<=copy_data_w[63:56];	data_3[47:40]<=copy_data_w[47:40]; data_3[31:24]<=copy_data_w[31:24]; data_3[15:8]<=copy_data_w[15:8]; 
-			{hit_3[7],hit_3[5],hit_3[3],hit_3[1]}	<={copy_valid_w[7],copy_valid_w[5],copy_valid_w[3],copy_valid_w[1]} & {copy_valid_buff2[7],copy_valid_buff2[5],copy_valid_buff2[3],copy_valid_buff2[1]};	end
-		
-		if(forward2[0])begin data_3[55:48]<=copy_data_w[55:48];	data_3[39:32]<=copy_data_w[55:48]; data_3[23:16]<=copy_data_w[55:48]; data_3[7:0] <=copy_data_w[55:48];
-			{hit_3[6],hit_3[4],hit_3[2],hit_3[0]}	<={4{copy_valid_w[6]}} & {copy_valid_buff2[6],copy_valid_buff2[4],copy_valid_buff2[2],copy_valid_buff2[0]};end
-		else begin  data_3[55:48]<=copy_data_w[55:48];	data_3[39:32]<=copy_data_w[39:32]; data_3[23:16]<=copy_data_w[23:16]; data_3[7:0] <=copy_data_w[7:0]; 
-			{hit_3[6],hit_3[4],hit_3[2],hit_3[0]}	<={copy_valid_w[6],copy_valid_w[4],copy_valid_w[2],copy_valid_w[0]} & {copy_valid_buff2[6],copy_valid_buff2[4],copy_valid_buff2[2],copy_valid_buff2[0]};end
-	end	
+	
+	data_3				<= copy_data_w[63:0];
+	hit_3				<= copy_valid_w[7:0] & copy_valid_buff2;
 end
 assign copy_valid_w=copy_valid_w2^{8{valid_inverse}};
 
@@ -303,15 +274,6 @@ assign odd_address_out=address_odd_5;
 
 assign ram_select_out=ram_select_5;
 ////////////////////
-
-initial
-begin
-	
-//	hit_3			<=8'b0;
-end
-
-
-
 
 
 ///////this ram is for debug only, will be optimized
