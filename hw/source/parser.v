@@ -351,20 +351,18 @@ always@(posedge clk)begin
 	end
 	
 	3'd3:begin  ///if the overflow of address happens, it will first go to this state
+		
+		if(length_left	==5'b0)begin //if the current slice is totally processed, go back to state 1
+			state		<=3'd1;
+			slice_req	<=1'b1;
+		end else
 		if(page_finish)begin
 		//if this file is finished and the BRAMs are cleaned, go back to the initial state
 			state	<=3'd0;
 		end else 
 		if(block_out_finish)begin
-		
-			if(length_left	==5'b0)begin
-				state		<=3'd1;
-				slice_req	<=1'b1;
-			end else begin
 			//if this slice is not totally processed, go back to state2 to continue
 				state	<=3'd2;
-			end
-			
 		end
 		block_finish_r	<=1'b0;
 		lit_valid		<=1'b0;

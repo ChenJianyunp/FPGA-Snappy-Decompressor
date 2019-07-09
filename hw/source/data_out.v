@@ -121,7 +121,7 @@ always@(posedge clk)begin
 			    final_valid	<=1'b1;
             end        
 		end
-        else if((rd_address[9:0]==10'd1022) & valid_lower & ready)begin
+        else if((rd_address[9:0]==10'd1022) & (rd_address!=(max_address-1)) & valid_lower & ready)begin
 			state<=3'd2;
         end
    /****************************************************/
