@@ -18,6 +18,7 @@ module decompressor(
 	input[31:0] decompression_length,	//length of the data after decompressor (uncompressed data)
 	input wr_ready,
 
+	output data_fifo_almostempty,
 	output data_fifo_almostfull,
 	
 	output done,
@@ -55,6 +56,7 @@ data_fifo df0(
 	.wr_en(df_wr_en),
 	.rd_en((~qt_almostfull) & ~df_empty),
 	.dout(df_dout),
+	.prog_empty(data_fifo_almostempty),
 	.almost_full(data_fifo_almostfull),
 	.empty(df_empty),
 	.valid(df_valid),

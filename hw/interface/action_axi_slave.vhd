@@ -51,9 +51,10 @@ entity action_axi_slave is
                 app_done_i      : in  std_logic;
                 app_ready_i     : in  std_logic;
                 app_idle_i      : in  std_logic;
-               
                 
 		-- User ports ends
+				job_id_o				: out std_logic_vector(15 downto 0);
+				job_valid_o				: out std_logic;
 		-- Do not modify the ports beyond this line
 
 		-- Global Clock Signal
@@ -162,10 +163,13 @@ architecture action_axi_slave of action_axi_slave is
 	signal slv_reg_wren	: std_logic;
 	signal reg_data_out	: std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
 	signal byte_index	: integer;
-        signal idle_q           : std_logic;
-        signal app_start_q      : std_logic;
-        signal app_done_q       : std_logic;
-        signal slv_reg0_bit0_q  : std_logic;
+    signal idle_q           : std_logic;
+    signal app_start_q      : std_logic;
+    signal app_done_q       : std_logic;
+    signal slv_reg0_bit0_q  : std_logic;
+	signal slv_reg12_bit16_q  : std_logic;	--record job valid
+	
+	signal job_valid_q      : std_logic;
 
 begin
 	-- I/O Connections assignments
@@ -547,6 +551,8 @@ begin
         
         
 	-- Add user logic here
+	job_id_o      	<= slv_reg12(15 downto 0);
+	job_valid_o		<= job_valid_q;
         -- Reiner
 
         app_start_o     <= app_start_q;
@@ -570,11 +576,14 @@ begin
               app_done_i_q    :=    '0';
               slv_reg0_bit0_q <=    '0';
               idle_q          <=    '0';
+			  slv_reg12_bit16_q <=    '0';
+			  job_valid_q	  <=    '0';
      	    else
               idle_q          <= app_idle_i;
               slv_reg0_bit0_q <= slv_reg0(0);
               app_done_i_q    := app_done_i;
               loc_addr        := axi_awaddr(ADDR_LSB + OPT_MEM_ADDR_BITS-1 downto ADDR_LSB);
+			  slv_reg12_bit16_q <= slv_reg12(16);
               -- clear ap_done bit when register is read
               if slv_reg_rden = '1'and loc_addr = "00000"  then
                 app_done_q     <= '0';
@@ -588,7 +597,15 @@ begin
               if idle_q = '1' and app_idle_i = '0' then
                 app_start_q <= '0';
               end if;
-                
+			
+			--generate pulse for valid 
+			if slv_reg12_bit16_q = '0' and slv_reg12(16) = '1' then
+				job_valid_q <= '1';
+			  else 
+				job_valid_q <= '0';
+			  end if;
+
+			   
 	    end if;
 	  end if;
 	end process;

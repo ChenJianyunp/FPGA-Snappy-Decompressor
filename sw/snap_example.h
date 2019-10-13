@@ -39,6 +39,7 @@
 #define ACTION_CONFIG_COPY_ND   0x0b    /* Copy NVME drive 0 to DDR */
 #define NVME_DRIVE1		0x10	/* Select Drive 1 for 0a and 0b */
 
+#define ACTION_JOB_ID         	0x30
 #define ACTION_SRC_LOW          0x34	/* LBA for 0A, 1A, 0B and 1B */
 #define ACTION_SRC_HIGH         0x38
 #define ACTION_DEST_LOW         0x3c	/* LBA for 0A, 1A, 0B and 1B */

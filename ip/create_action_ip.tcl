@@ -65,7 +65,10 @@ set_property -dict [list                                              \
         CONFIG.Data_Count_Width {9}                                   \
         CONFIG.Write_Data_Count_Width {10}                            \
         CONFIG.Read_Data_Count_Width {12}                             \
-        CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} \
+        CONFIG.Programmable_Empty_Type {Single_Programmable_Empty_Threshold_Constant} \
+		CONFIG.Empty_Threshold_Assert_Value {1600} 						\
+		CONFIG.Empty_Threshold_Negate_Value {1601}	\
+		CONFIG.Programmable_Full_Type {Single_Programmable_Full_Threshold_Constant} \
         CONFIG.Full_Threshold_Assert_Value {500}                      \
         CONFIG.Full_Threshold_Negate_Value {499}                      \
         ] [get_ips data_fifo]

@@ -162,6 +162,10 @@ architecture action_example of action_example is
         signal app_idle         : std_logic;
         signal counter          : std_logic_vector( 7 downto 0);
         signal counter_q        : std_logic_vector(31 downto 0);
+		--user added
+		signal job_id			: std_logic_vector(15 downto 0);
+		signal job_valid		: std_logic;
+		
 
 
         signal dma_rd_req        : std_logic;
@@ -170,6 +174,7 @@ architecture action_example of action_example is
         signal rd_len            : std_logic_vector(  7 downto 0);
         signal dma_rd_data       : std_logic_vector(511 downto 0);
         signal dma_rd_data_valid : std_logic;
+		signal dma_rd_data_last  : std_logic;
         signal dma_rd_data_taken : std_logic;
 
         signal dma_wr_req        : std_logic;
@@ -254,10 +259,13 @@ architecture action_example of action_example is
 			done:		out std_logic;
 			idle:		out std_logic;
 			ready:		out std_logic;
+			
 			src_addr:	in std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
 			des_addr:	in std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
 			compression_length:	in std_logic_vector(31 downto 0);
 			decompression_length: in std_logic_vector(31 downto 0);
+			job_id_i				: in std_logic_vector(15 downto 0);
+			job_valid_i				: in std_logic;
 --ports to read data from host memory
 			dma_rd_req:	out std_logic;
 			dma_rd_addr:out std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
@@ -266,6 +274,7 @@ architecture action_example of action_example is
 			dma_rd_data:	in std_logic_vector(C_M_AXI_DATA_WIDTH-1 downto 0);
 			dma_rd_data_valid: in std_logic;
 			dma_rd_data_taken: out std_logic;
+			dma_rd_rlast: in std_logic;
 --ports to write data to host memory
 			dma_wr_req:		out std_logic;
 			dma_wr_addr:	out std_logic_vector(C_M_AXI_ADDR_WIDTH-1 downto 0);
@@ -274,9 +283,9 @@ architecture action_example of action_example is
 			dma_wr_data:	out std_logic_vector(C_M_AXI_DATA_WIDTH-1 downto 0);
 			dma_wr_wvalid:	out std_logic;
 			dma_wr_data_strobe:out std_logic_vector(63 downto 0);
-			dma_wr_data_last:out std_logic;
 			dma_wr_ready:	in std_logic;
 			dma_wr_bready: 	out std_logic;
+			dma_wr_wlast : in std_logic;
 			dma_wr_done:	in std_logic
 		);
 		end component;
@@ -318,7 +327,11 @@ action_axi_slave_inst : entity work.action_axi_slave
         app_done_i      => app_done,
         app_ready_i     => app_ready,
         app_idle_i      => app_idle,
-        -- User ports ends
+		
+		-- User ports ends
+		job_id_o		=> job_id,
+		job_valid_o		=> job_valid,
+				
         S_AXI_ACLK  => action_clk,
         S_AXI_ARESETN   => action_rst_n,
         S_AXI_AWADDR    => axi_ctrl_reg_awaddr,
@@ -363,6 +376,7 @@ action_dma_axi_master_inst : entity work.action_axi_master
         dma_rd_req_ack_o        => dma_rd_req_ack,
         dma_rd_data_o           => dma_rd_data,
         dma_rd_data_valid_o     => dma_rd_data_valid,
+		dma_rd_data_last_o		=> dma_rd_data_last,
         dma_rd_data_taken_i     => dma_rd_data_taken,
         dma_rd_context_id       => reg_0x20(C_AXI_HOST_MEM_ARUSER_WIDTH - 1 downto 0),
 
@@ -442,6 +456,10 @@ axi_io0: axi_io
 		done				=>app_done,
 		idle				=>app_idle,
 		ready				=>app_ready,
+
+--choose decompressor	
+		job_id_i			=> job_id,
+		job_valid_i			=> job_valid,
 		
 		src_addr			=>reg_0x38_0x34,
 		des_addr			=>reg_0x40_0x3c,
@@ -455,6 +473,8 @@ axi_io0: axi_io
 		dma_rd_data			=>dma_rd_data,
 		dma_rd_data_valid	=>dma_rd_data_valid,
 		dma_rd_data_taken	=>dma_rd_data_taken,
+		dma_rd_rlast		=>dma_rd_data_last,
+		
 --ports to write data to host memory
 		dma_wr_req			=>dma_wr_req,
 		dma_wr_addr			=>wr_addr,
@@ -463,9 +483,9 @@ axi_io0: axi_io
 		dma_wr_data			=>wr_data,
 		dma_wr_wvalid		=>wr_wvalid,
 		dma_wr_data_strobe	=>dma_wr_data_strobe,
-		dma_wr_data_last	=>dma_wr_data_last,
 		dma_wr_ready		=>dma_wr_ready,
 		dma_wr_bready		=>dma_wr_bready,
+		dma_wr_wlast		=>dma_wr_data_last,
 		dma_wr_done			=>dma_wr_done
 	);
 

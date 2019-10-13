@@ -69,6 +69,15 @@ static	int verbose_level = 0;
 
 int get_decompression_length(uint8_t *);
 
+typedef struct
+{
+    void *dest;
+	void *src;
+	size_t rd_size;
+	size_t wr_size;
+	int job_id; 
+} job_description;
+
 static uint64_t get_usec(void)
 {
     struct timeval t;
@@ -170,44 +179,40 @@ static int action_wait_idle(struct snap_card* h, int timeout, uint64_t *elapsed)
     return rc;
 }
 
-
 static void action_decompress(struct snap_card* h,
-        void *dest,
-        const void *src,
-        size_t rd_size,
-        size_t wr_size)
+        job_description jd)
 {
     uint64_t addr;
 
-    VERBOSE1(" decompress from %p to %p\n with input size %ld and output size %ld\n", src, dest, rd_size,wr_size);
-    addr = (uint64_t)dest;
+    VERBOSE1(" decompress from %p to %p\n with input size %ld and output size %ld\n", jd.src, jd.dest, jd.rd_size,jd.wr_size);
+    addr = (uint64_t)jd.dest;
     action_write(h, ACTION_DEST_LOW, (uint32_t)(addr & 0xffffffff));
     action_write(h, ACTION_DEST_HIGH, (uint32_t)(addr >> 32));
-    addr = (uint64_t)src;
+    addr = (uint64_t)jd.src;
     action_write(h, ACTION_SRC_LOW, (uint32_t)(addr & 0xffffffff));
     action_write(h, ACTION_SRC_HIGH, (uint32_t)(addr >> 32));
-    action_write(h, ACTION_RD_SIZE, rd_size);
-    action_write(h, ACTION_WR_SIZE, wr_size);
-
+    action_write(h, ACTION_RD_SIZE, jd.rd_size);
+    action_write(h, ACTION_WR_SIZE, jd.wr_size);
+	action_write(h, ACTION_JOB_ID, jd.job_id | (1<<16));
+	action_write(h, ACTION_JOB_ID, 0);
+	
     return;
 }
-
 
 
 static int do_decompression(struct snap_card *h,
             snap_action_flag_t flags,
             int timeout,
-            void *dest,
-            void *src,
-            unsigned long rd_size,
-            unsigned long wr_size,
+			int num_jobs, //number of jobs
+            job_description* jd,
             int skip_Detach
 )
 {
     int rc;
     struct snap_action *act = NULL;
     uint64_t td;
-
+	int i;
+	
     /* attach the action */
     act = snap_attach_action(h, ACTION_TYPE_EXAMPLE, flags, 5 * timeout);
     if (NULL == act) {
@@ -217,7 +222,10 @@ static int do_decompression(struct snap_card *h,
     }
 
     /* send action control data */
-    action_decompress(h, dest, src, rd_size,wr_size);
+	for(i=0;i<num_jobs;i++){
+		action_decompress(h, *(jd+i));
+	}
+    
 
     /* start the action and wait for it ends */
     rc = action_wait_idle(h, timeout, &td);
@@ -236,6 +244,7 @@ static int do_decompression(struct snap_card *h,
     }
     return rc;
 }
+
 
 /*calculate the length of the uncompressed data
 src: the source of the compressed data*/
@@ -275,61 +284,93 @@ static int decompression_test(struct snap_card* dnc,
             )    
 {
     int rc;
-    void *src = NULL;
-    void *dest = NULL;
+    void *src1 = NULL;
+    void *dest1 = NULL;
+	void *src2 = NULL;
+    void *dest2 = NULL;
 
+	job_description jd[2];
+	
     /*prepare read data and write space*/
     
-	uint8_t *ibuff = NULL, *obuff = NULL;
+	uint8_t *ibuff1 = NULL, *obuff1 = NULL;
+	uint8_t *ibuff2 = NULL, *obuff2 = NULL;
     ssize_t size = 0;
     size_t set_size = 1*64*1024;
 
     printf("1: The input file is: %s\n",inputfile);
     size = __file_size(inputfile);
     printf("The size of the input is %d \n",(int)size);
-    ibuff = snap_malloc(size);
-    if (ibuff == NULL){
-        printf("ibuff null");
+    ibuff1 = snap_malloc(size);
+	ibuff2 = snap_malloc(size);
+    if (ibuff1 == NULL){
+        printf("ibuff1 null");
+        return 1;
+    }
+	if (ibuff2 == NULL){
+        printf("ibuff2 null");
         return 1;
     }
 
     printf("2: The output file is: %s\n",outputfile);
 	
-    rc = __file_read(inputfile, ibuff, size);
-    set_size=get_decompression_length(ibuff); ///calculate the length of the output
+    rc = __file_read(inputfile, ibuff1, size);
+	rc = __file_read(inputfile, ibuff2, size);
+    set_size=get_decompression_length(ibuff1); ///calculate the length of the output
     printf("The size of the output is %d \n",(int)set_size);
 	
 /*At the end of decompression, there maybe some garbage with the size of less than 64 bytes.
 inorder to save the hardware resource, the garbage will also be transfered back, so in the 
 software side, always allocate a more memory for writing back. */
-    obuff = snap_malloc(set_size+128);
-    if (obuff == NULL){
-        printf("obuff null");
+    obuff1 = snap_malloc(set_size+128);
+	obuff2 = snap_malloc(set_size+128);
+    if (obuff1 == NULL){
+        printf("obuff1 null");
+        return 1;
+    }
+	if (obuff2 == NULL){
+        printf("obuff2 null");
         return 1;
     }
 
     /* initial the memory to 'A' for debug */
-    memset(obuff, (int)('A'), set_size+128);
+    memset(obuff1, (int)('A'), set_size+128);
 
     if (rc < 0){
         printf("rc null");
         return 1;
     }
-    src = (void *)ibuff;
-    dest = (void *)obuff;
+    src1 = (void *)ibuff1;
+    dest1 = (void *)obuff1;
+	src2 = (void *)ibuff1;
+    dest2 = (void *)obuff1;
 
-    rc = do_decompression(dnc, attach_flags, timeout, dest, src, size, set_size, skip_Detach);
+	jd[0].src = src1;
+	jd[0].dest = dest1;
+	jd[0].rd_size = size;
+	jd[0].wr_size = set_size;
+	jd[0].job_id = 0;
+	
+    jd[0].src = src2;
+	jd[0].dest = dest2;
+	jd[0].rd_size = size;
+	jd[0].wr_size = set_size;
+	jd[0].job_id = 1;
+	
+    rc = do_decompression(dnc, attach_flags, timeout, 2, &jd[0], skip_Detach);
     if (0 == rc) {
         printf("decompression finished - compression factor on this file was %d %% \n", (int)(100. - (100.*size)/set_size));
     }
+	
 	/******output the decompression result******/
     FILE * pFile;
     pFile=fopen(outputfile,"wb");
-    fwrite((void*)obuff,sizeof(char),set_size,pFile);
+    fwrite((void*)obuff1,sizeof(char),set_size,pFile);
 
-    free_mem(ibuff);
-    free_mem(obuff);
-	
+    free_mem(ibuff1);
+    free_mem(obuff1);
+	free_mem(ibuff2);
+    free_mem(obuff2);
     return 0;
 }
 
