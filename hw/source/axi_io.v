@@ -64,7 +64,7 @@ data for dma is in this order: byte n,byte n-1,...,byte 1,byte 0,
 data for decompressor is in a reverse order: byte 0,byte 1,...byte n-1,byte n
 ********************/
 wire[C_M_AXI_DATA_WIDTH-1:0] dec_data_in,dec_data_out;
-wire[NUM_DECOMPRESSOR-1:0] dec_data_out_all[C_M_AXI_DATA_WIDTH-1:0];
+wire[C_M_AXI_DATA_WIDTH-1:0] dec_data_out_all[NUM_DECOMPRESSOR-1:0];
 wire[C_M_AXI_ADDR_WIDTH-1:0] dec_byte_valid;
 wire[C_M_AXI_ADDR_WIDTH-1:0] dec_wr_valid;
 /***********axi_out_fifo*************/
@@ -79,7 +79,7 @@ generate
     end
 endgenerate
 /*******************/
-wire done_decompressor;
+wire[NUM_DECOMPRESSOR-1 : 0] done_decompressor;
 wire done_control;
 
 genvar j;
@@ -88,7 +88,7 @@ for(j=0;j< NUM_DECOMPRESSOR;j=j+1)begin:gen_decompressor
     wire dec_rd_data_valid;
     wire dec_wr_ready;
     assign dec_rd_data_valid = rd_dec_valid[j] & dma_rd_data_valid;
-    assign dec_wr_ready = dma_wr_ready & wr_dec_valid[j] & axi_out_fifo_prog_full;
+    assign dec_wr_ready = dma_wr_ready & wr_dec_valid[j];// & axi_out_fifo_prog_full;
     reg[31:0] compression_length_r;
     reg[31:0] decompression_length_r;
     always@(posedge clk)begin
@@ -109,12 +109,12 @@ for(j=0;j< NUM_DECOMPRESSOR;j=j+1)begin:gen_decompressor
 		.data_fifo_almostempty(dec_almostempty[j]),
 		.data_fifo_almostfull(dec_almostfull[j]),
     
-		.done(done_decompressor),
+		.done(done_decompressor[j]),
 //		.last(),
 		.wr_ready(dec_wr_ready),
 		.data_out(dec_data_out_all[j]),
 		.byte_valid_out(dec_byte_valid),
-		.valid_out(dec_wr_valid)
+		.valid_out(dec_wr_valid[j])
 	);
 end
 endgenerate
@@ -188,7 +188,7 @@ axi_out_fifo your_instance_name (
 );
 */
 
-assign dma_rd_data_taken    = (dec_almostfull & rd_dec_valid)!=0;
+assign dma_rd_data_taken    = ((~dec_almostfull) & rd_dec_valid)!=0;
 assign done                 = done_decompressor && (~done_control)==0;
 
 endmodule 

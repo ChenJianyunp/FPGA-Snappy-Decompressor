@@ -351,11 +351,11 @@ software side, always allocate a more memory for writing back. */
 	jd[0].wr_size = set_size;
 	jd[0].job_id = 0;
 	
-    jd[0].src = src2;
-	jd[0].dest = dest2;
-	jd[0].rd_size = size;
-	jd[0].wr_size = set_size;
-	jd[0].job_id = 1;
+    jd[1].src = src2;
+	jd[1].dest = dest2;
+	jd[1].rd_size = size;
+	jd[1].wr_size = set_size;
+	jd[1].job_id = 1;
 	
     rc = do_decompression(dnc, attach_flags, timeout, 2, &jd[0], skip_Detach);
     if (0 == rc) {

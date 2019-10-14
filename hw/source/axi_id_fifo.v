@@ -34,7 +34,7 @@ module axi_id_fifo#(
 	output full,
 	output empty
 );
-reg[7:0] data[NUM_DECOMPRESSOR-1:0];
+reg[NUM_DECOMPRESSOR-1:0] data[7:0];
 reg[2:0] rd_ptr,wr_ptr;
 reg[NUM_DECOMPRESSOR-1:0] select_out_r;
 always@(posedge clk)begin

@@ -64,8 +64,8 @@ reg[NUM_DECOMPRESSOR-1 :0] read_done_r;
 reg read_done_temp;
 reg[5:0] rd_record; //record reading for which decompressor 
 reg[NUM_DECOMPRESSOR-1:0] rd_round_robin;
-reg[NUM_DECOMPRESSOR-1:0] compression_length_r[34:6];
-reg[NUM_DECOMPRESSOR-1:0] rd_address_r[63:0];
+reg[34:6] compression_length_r[NUM_DECOMPRESSOR-1:0];
+reg[63:0] rd_address_r[NUM_DECOMPRESSOR-1:0];
 
 reg[NUM_DECOMPRESSOR-1:0] rd_dec_select;
 wire rd_select_fifo_full,rd_select_fifo_empty;
@@ -170,10 +170,10 @@ end
 
 
 /****************write data*****************/
-reg[NUM_DECOMPRESSOR-1:0] decompression_length_r[31:6];   ///[32:12]:number of 4k blocks  [11:6]:number of 64B [5:0]:fraction
-reg[NUM_DECOMPRESSOR-1:0] wr_address_r[63:0];
+reg[31:6] decompression_length_r[NUM_DECOMPRESSOR-1:0];   ///[32:12]:number of 4k blocks  [11:6]:number of 64B [5:0]:fraction
+reg[63:0] wr_address_r[NUM_DECOMPRESSOR-1:0];
 reg[NUM_DECOMPRESSOR-1:0] wr_round_robin;
-reg[NUM_DECOMPRESSOR-1 :0] write_done_r;
+reg[NUM_DECOMPRESSOR-1:0] write_done_r;
 reg[31:0] decompression_length_temp;   ///[34:12]:number of 4k blocks  [11:6]:number of 64B [5:0]:fraction
 reg[63:0] wr_address_temp;
 reg[2:0] wr_state;
@@ -215,7 +215,7 @@ always@(posedge clk)begin
             if(job_valid_i)begin
                 //similar to the read case
                 if(decompression_length[5:0]!=6'b0)begin
-					decompression_length_r[job_id_i]  <= decompression_length[34:6] + 29'd1;
+					decompression_length_r[job_id_i]  <= decompression_length[31:6] + 29'd1;
                 end else begin
                     decompression_length_r[job_id_i]    <= decompression_length[31:6];
                 end
