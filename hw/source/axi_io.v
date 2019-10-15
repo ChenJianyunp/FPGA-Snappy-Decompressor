@@ -49,12 +49,13 @@ module axi_io
     output[63:0] dma_wr_data_strobe,
     input dma_wr_ready,
     output dma_wr_bready,
-    input dma_wr_wlast,
+    output dma_wr_wlast,
 	input dma_wr_done
     
     
 );
 wire[NUM_DECOMPRESSOR-1:0] dec_almostempty;
+wire[NUM_DECOMPRESSOR-1:0] dec_wlast;
 wire[NUM_DECOMPRESSOR-1:0] dec_almostfull;
 wire[NUM_DECOMPRESSOR-1:0] rd_dec_valid;
 wire[NUM_DECOMPRESSOR-1:0] wr_dec_valid;
@@ -110,7 +111,7 @@ for(j=0;j< NUM_DECOMPRESSOR;j=j+1)begin:gen_decompressor
 		.data_fifo_almostfull(dec_almostfull[j]),
     
 		.done(done_decompressor[j]),
-//		.last(),
+		.last(dec_wlast[j]),
 		.wr_ready(dec_wr_ready),
 		.data_out(dec_data_out_all[j]),
 		.byte_valid_out(dec_byte_valid),
@@ -187,7 +188,7 @@ axi_out_fifo your_instance_name (
   .rd_rst_busy(rd_rst_busy)  // output wire rd_rst_busy
 );
 */
-
+assign dma_wr_wlast			= (dec_wlast & wr_dec_valid) != 0;
 assign dma_rd_data_taken    = ((~dec_almostfull) & rd_dec_valid)!=0;
 assign done                 = done_decompressor && (~done_control)==0;
 

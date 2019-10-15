@@ -285,7 +285,7 @@ architecture action_example of action_example is
 			dma_wr_data_strobe:out std_logic_vector(63 downto 0);
 			dma_wr_ready:	in std_logic;
 			dma_wr_bready: 	out std_logic;
-			dma_wr_wlast : in std_logic;
+			dma_wr_wlast : out std_logic;
 			dma_wr_done:	in std_logic
 		);
 		end component;
