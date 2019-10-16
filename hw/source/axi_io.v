@@ -54,6 +54,8 @@ module axi_io
     
     
 );
+
+localparam ZERO = 0;
 wire[NUM_DECOMPRESSOR-1:0] dec_almostempty;
 wire[NUM_DECOMPRESSOR-1:0] dec_wlast;
 wire[NUM_DECOMPRESSOR-1:0] dec_almostfull;
@@ -81,6 +83,7 @@ generate
 endgenerate
 /*******************/
 wire[NUM_DECOMPRESSOR-1 : 0] done_decompressor;
+reg[NUM_DECOMPRESSOR-1 : 0] done_decompressor_r;
 wire done_control;
 
 genvar j;
@@ -98,6 +101,15 @@ for(j=0;j< NUM_DECOMPRESSOR;j=j+1)begin:gen_decompressor
 		  decompression_length_r	<= decompression_length;
 	   end
     end
+	
+	always@(posedge clk)begin
+		if(start)begin
+			done_decompressor_r[j] <= 1'b0;
+		end else if(done_decompressor[j])begin
+			done_decompressor_r[j] <= 1'b1;
+		end
+	end
+	
 	decompressor d0(
 		.clk(clk),
 		.rst_n(rst_n),
@@ -109,9 +121,10 @@ for(j=0;j< NUM_DECOMPRESSOR;j=j+1)begin:gen_decompressor
 
 		.data_fifo_almostempty(dec_almostempty[j]),
 		.data_fifo_almostfull(dec_almostfull[j]),
-    
+    	.axi_last(dec_wlast[j]),
+	
 		.done(done_decompressor[j]),
-		.last(dec_wlast[j]),
+		.last(),
 		.wr_ready(dec_wr_ready),
 		.data_out(dec_data_out_all[j]),
 		.byte_valid_out(dec_byte_valid),
@@ -146,7 +159,7 @@ io_control io_control0(
     .bready(dma_wr_bready),
     .bresp(dma_wr_done),
 	
-	.done_i(done_decompressor),
+	.done_i(done_decompressor_r),
     .start(start),
     .idle(idle),
     .ready(ready),
@@ -190,6 +203,6 @@ axi_out_fifo your_instance_name (
 */
 assign dma_wr_wlast			= (dec_wlast & wr_dec_valid) != 0;
 assign dma_rd_data_taken    = ((~dec_almostfull) & rd_dec_valid)!=0;
-assign done                 = done_decompressor && (~done_control)==0;
+assign done                 = ((~done_decompressor_r)==ZERO[NUM_DECOMPRESSOR-1:0]) && (~done_control);
 
 endmodule 

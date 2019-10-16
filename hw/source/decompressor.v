@@ -20,12 +20,25 @@ module decompressor(
 
 	output data_fifo_almostempty,
 	output data_fifo_almostfull,
+	output axi_last,
 	
 	output done,
 	output last,///whether it is the last 64B of a burst
 	output[511:0] data_out,
 	output[63:0] byte_valid_out,
 	output valid_out
+);
+
+//to generate last signal for axi_write
+
+handshake_counter handshake_counter0(
+	.clk(clk),
+	.rst_n(rst_n),
+	.start(start),
+	.handshake(wr_ready & valid_out),
+	.last(last),
+	
+	.axi_last(axi_last)
 );
 ///////parameters
 parameter 	NUM_PARSER=6,  //number of Parser (2nd level parser)
