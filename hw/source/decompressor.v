@@ -525,6 +525,24 @@ control#
 	
 );
 
+/**********************************************
+Only for simulation, should not be synthesised
+********************************************/
+reg[31:0] cycle_count;
+
+always@(posedge clk)begin
+	if(~rst_n)begin
+		cycle_count	<= 0;
+	end else begin
+		cycle_count <= cycle_count + 1;
+		if(done)begin
+			$display("Total cycle used is: %d", cycle_count);
+		end
+		
+	end
+end
+/****************end***************************/
+
 assign done=dout_page_out_finish;
 assign data_out=dout_dout;
 

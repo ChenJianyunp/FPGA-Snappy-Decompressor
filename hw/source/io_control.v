@@ -24,6 +24,8 @@ module io_control#(
     output[7:0] rd_len,
     output[63:0] rd_address,
 	input rd_axi_last,
+	input rd_axi_ready,
+	input rd_axi_valid,
 	output[NUM_DECOMPRESSOR-1:0] rd_dec_valid,
 	input[15:0] job_id_i,
 	input job_valid_i,
@@ -83,7 +85,7 @@ axi_id_fifo
 	.select_in(rd_dec_select), 
 	.wr_en(rd_req_ack & rd_req_r),
 	
-	.rd_en(rd_axi_last),
+	.rd_en(rd_axi_last & rd_axi_ready & rd_axi_valid),
 	.select_out(rd_dec_valid),
 	.full(rd_select_fifo_full),
 	.empty(rd_select_fifo_empty)
@@ -201,7 +203,7 @@ axi_id_fifo #(
 	.select_in(wr_dec_select), 
 	.wr_en(wr_req_ack & wr_req_r),
 	
-	.rd_en(wr_axi_last),
+	.rd_en(wr_axi_last & wr_valid & wr_ready),
 	.select_out(wr_dec_valid),
 	.full(wr_select_fifo_full),
 	.empty(wr_select_fifo_empty)

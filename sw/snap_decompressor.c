@@ -37,7 +37,7 @@ Function:	This a program to test the hardware Snappy decompressor,
 
 #define	MEGAB		(1024*1024ull)
 #define	GIGAB		(1024 * MEGAB)
-
+#define NUM_DECOMPRESSORS 3
 
 #define VERBOSE0(fmt, ...) do {			\
 		printf(fmt, ## __VA_ARGS__);    \
@@ -288,13 +288,16 @@ static int decompression_test(struct snap_card* dnc,
     void *dest1 = NULL;
 	void *src2 = NULL;
     void *dest2 = NULL;
-
-	job_description jd[2];
+	void *src3 = NULL;
+    void *dest3 = NULL;
+	
+	job_description jd[NUM_DECOMPRESSORS];
 	
     /*prepare read data and write space*/
     
 	uint8_t *ibuff1 = NULL, *obuff1 = NULL;
 	uint8_t *ibuff2 = NULL, *obuff2 = NULL;
+	uint8_t *ibuff3 = NULL, *obuff3 = NULL;
     ssize_t size = 0;
     size_t set_size = 1*64*1024;
 
@@ -303,6 +306,7 @@ static int decompression_test(struct snap_card* dnc,
     printf("The size of the input is %d \n",(int)size);
     ibuff1 = snap_malloc(size);
 	ibuff2 = snap_malloc(size);
+	ibuff3 = snap_malloc(size);
     if (ibuff1 == NULL){
         printf("ibuff1 null");
         return 1;
@@ -311,11 +315,16 @@ static int decompression_test(struct snap_card* dnc,
         printf("ibuff2 null");
         return 1;
     }
+	if (ibuff3 == NULL){
+        printf("ibuff3 null");
+        return 1;
+    }
 
     printf("2: The output file is: %s\n",outputfile);
 	
     rc = __file_read(inputfile, ibuff1, size);
 	rc = __file_read(inputfile, ibuff2, size);
+	rc = __file_read(inputfile, ibuff3, size);
     set_size=get_decompression_length(ibuff1); ///calculate the length of the output
     printf("The size of the output is %d \n",(int)set_size);
 	
@@ -324,11 +333,16 @@ inorder to save the hardware resource, the garbage will also be transfered back,
 software side, always allocate a more memory for writing back. */
     obuff1 = snap_malloc(set_size+128);
 	obuff2 = snap_malloc(set_size+128);
+	obuff3 = snap_malloc(set_size+128);
     if (obuff1 == NULL){
         printf("obuff1 null");
         return 1;
     }
 	if (obuff2 == NULL){
+        printf("obuff2 null");
+        return 1;
+    }
+	if (obuff3 == NULL){
         printf("obuff2 null");
         return 1;
     }
@@ -342,8 +356,10 @@ software side, always allocate a more memory for writing back. */
     }
     src1 = (void *)ibuff1;
     dest1 = (void *)obuff1;
-	src2 = (void *)ibuff1;
-    dest2 = (void *)obuff1;
+	src2 = (void *)ibuff2;
+    dest2 = (void *)obuff2;
+	src3 = (void *)ibuff3;
+    dest3 = (void *)obuff3;
 
 	jd[0].src = src1;
 	jd[0].dest = dest1;
@@ -357,7 +373,13 @@ software side, always allocate a more memory for writing back. */
 	jd[1].wr_size = set_size;
 	jd[1].job_id = 1;
 	
-    rc = do_decompression(dnc, attach_flags, timeout, 2, &jd[0], skip_Detach);
+	jd[2].src = src3;
+	jd[2].dest = dest3;
+	jd[2].rd_size = size;
+	jd[2].wr_size = set_size;
+	jd[2].job_id = 2;
+	
+    rc = do_decompression(dnc, attach_flags, timeout, NUM_DECOMPRESSORS, &jd[0], skip_Detach);
     if (0 == rc) {
         printf("decompression finished - compression factor on this file was %d %% \n", (int)(100. - (100.*size)/set_size));
     }
@@ -371,6 +393,8 @@ software side, always allocate a more memory for writing back. */
     free_mem(obuff1);
 	free_mem(ibuff2);
     free_mem(obuff2);
+	free_mem(ibuff3);
+    free_mem(obuff3);
     return 0;
 }
 

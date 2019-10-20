@@ -133,7 +133,10 @@ for(j=0;j< NUM_DECOMPRESSOR;j=j+1)begin:gen_decompressor
 end
 endgenerate
 
-io_control io_control0(
+io_control#(
+	.NUM_DECOMPRESSOR(NUM_DECOMPRESSOR)
+)io_control0
+(
     .clk(clk),
     .rst_n(rst_n),
     
@@ -143,6 +146,8 @@ io_control io_control0(
     .rd_len(dma_rd_len),
 	.rd_address(dma_rd_addr),
 	.rd_axi_last(dma_rd_rlast),
+	.rd_axi_ready(dma_rd_data_taken),
+	.rd_axi_valid(dma_rd_data_valid),
 	.rd_dec_valid(rd_dec_valid),
 	.job_id_i(job_id_i),
 	.job_valid_i(job_valid_i),

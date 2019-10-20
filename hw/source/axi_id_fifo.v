@@ -29,7 +29,7 @@ module axi_id_fifo#(
 	input[NUM_DECOMPRESSOR-1:0] select_in, 
 	input wr_en,
 	
-	output rd_en,
+	input rd_en,
 	output[NUM_DECOMPRESSOR-1:0] select_out,
 	output full,
 	output empty
@@ -37,6 +37,15 @@ module axi_id_fifo#(
 reg[NUM_DECOMPRESSOR-1:0] data[7:0];
 reg[2:0] rd_ptr,wr_ptr;
 reg[NUM_DECOMPRESSOR-1:0] select_out_r;
+
+integer i;
+initial
+begin
+	for(i=0;i<8;i=i+1)begin
+		data[i] <= 0;
+	end
+end
+
 always@(posedge clk)begin
 	if(~rst_n)begin
 		rd_ptr	<= 0;
