@@ -62,17 +62,21 @@ reg[63:0] rd_address_temp;
 reg[7:0] rd_len_r;
 reg rd_req_r;
 reg[2:0] rd_state;
-reg[NUM_DECOMPRESSOR-1 :0] read_done_r;
+reg[NUM_DECOMPRESSOR-1:0] read_done_r;
 reg read_done_temp;
 reg[5:0] rd_record; //record reading for which decompressor 
 reg[NUM_DECOMPRESSOR-1:0] rd_round_robin;
 reg[34:6] compression_length_r[NUM_DECOMPRESSOR-1:0];
 reg[63:0] rd_address_r[NUM_DECOMPRESSOR-1:0];
 
+wire[NUM_DECOMPRESSOR-1:0] rd_select;
 reg[NUM_DECOMPRESSOR-1:0] rd_dec_select;
 wire rd_select_fifo_full,rd_select_fifo_empty;
 integer i;
 localparam ZERO = 0;
+localparam ONES = 12'hfff;
+
+assign rd_select = (rd_round_robin & decompressor_almost_empty & (~read_done_r));
 
 axi_id_fifo 
 #(
@@ -95,8 +99,8 @@ always@(posedge clk)begin
     if(~rst_n)begin
         rd_req_r        <= 1'b0;
         rd_state        <= 3'd0;
-        read_done_r     <= 0;
 		rd_round_robin	<= 1;
+		read_done_r  <= ONES[NUM_DECOMPRESSOR-1:0];
     end else case(rd_state)
         3'd0:begin
             if(job_valid_i)begin
@@ -107,21 +111,20 @@ always@(posedge clk)begin
                     compression_length_r[job_id_i]  <= compression_length[34:6];
                 end
 				rd_address_r[job_id_i]            <= src_addr;
-                
+				read_done_r [job_id_i]			  <= 1'b0;
             end
 			if(start)begin //if receive all the starts signal
 				rd_state                <= 3'd1;
 			end
-			read_done_r     <= 0;
 			rd_req_r        <= 1'b0;
         end
 		
 		3'd1:begin //choose an decompressor
-			if((rd_round_robin & decompressor_almost_empty & (~read_done_r)) != 0)begin
+			if( rd_select != 0)begin
 				rd_state    <= 3'd2;
 			end
 			for(i =0;i<NUM_DECOMPRESSOR;i=i+1)begin:select_read
-				if(rd_round_robin[i] == 1'b1)begin
+				if(rd_select[i] == 1'b1)begin
 					compression_length_temp	<= compression_length_r[i];
 					rd_address_temp			<= rd_address_r[i];
 					rd_record		<= i;
@@ -162,6 +165,7 @@ always@(posedge clk)begin
         3'd4:begin//check whether all reading is done
             if((~read_done_r) == 0)begin // if all reading is done
 				rd_state        <= 3'd0;
+				read_done_r		<= ONES[NUM_DECOMPRESSOR-1:0];
 			end else begin
 				rd_state        <= 3'd1;
 			end
@@ -188,9 +192,11 @@ reg[63:0] wr_req_count;
 reg[63:0] wr_done_count;    // a counter to count the write_done of the data write before the done signal is sent.
 reg done_out_r;
 reg wr_axi_last_r;
-
+wire[NUM_DECOMPRESSOR-1:0] wr_select;
 reg[NUM_DECOMPRESSOR-1:0] wr_dec_select;
 wire wr_select_fifo_full,wr_select_fifo_empty;
+
+assign wr_select = (wr_round_robin & (~write_done_r));
 
 wire debug1,debug2;
 axi_id_fifo #(
@@ -214,9 +220,9 @@ always@(posedge clk)begin
         wr_state        <= 3'd0;
         wr_req_r        <= 1'b0;
         wr_req_count    <= 64'b0;
-        done_out_r        <= 1'b0;
+        done_out_r      <= 1'b0;
 		wr_round_robin	<= 1;
-		write_done_r	<= 0;
+		write_done_r	<= ONES[NUM_DECOMPRESSOR-1:0];
     end else case(wr_state)
         3'd0:begin                // initial state
             if(job_valid_i)begin
@@ -226,7 +232,8 @@ always@(posedge clk)begin
                 end else begin
                     decompression_length_r[job_id_i]    <= decompression_length[31:6];
                 end
-				wr_address_r[job_id_i]    <= des_addr;
+				wr_address_r[job_id_i]    	<= des_addr;
+				write_done_r[job_id_i]		<= 1'b0; 
 			end
 			if(start)begin //if receive all the starts signal
 				wr_state        <= 3'd1;
@@ -237,12 +244,12 @@ always@(posedge clk)begin
         end
 		
 		3'd1:begin //choose an decompressor
-			if((wr_round_robin & (~write_done_r)) != 0)begin
+			if(wr_select != 0)begin
 				wr_state	<= 3'd2;
 			end
 			
 			for(i =0;i<NUM_DECOMPRESSOR;i=i+1)begin:select_write
-				if(wr_round_robin[i] == 1'b1)begin
+				if(wr_select[i] == 1'b1)begin
 					decompression_length_temp	<= decompression_length_r[i];
 					wr_address_temp			<= wr_address_r[i];
 					wr_record		<= i;
@@ -286,6 +293,7 @@ always@(posedge clk)begin
             if(((~write_done_r) ==ZERO[NUM_DECOMPRESSOR-1:0]) && ((~read_done_r) == ZERO[NUM_DECOMPRESSOR-1:0])) begin    //write request ack count equal to write data ack count and the read is done
                 done_out_r  <= 1'b1;
                 wr_state    <= 3'd0;
+				write_done_r	<= ONES[NUM_DECOMPRESSOR-1:0];
             end else begin
 				wr_state    <= 3'd1;
 			end

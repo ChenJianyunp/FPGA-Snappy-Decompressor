@@ -14,7 +14,7 @@ module axi_io
 #(
     parameter C_M_AXI_ADDR_WIDTH=64,
     C_M_AXI_DATA_WIDTH=512,
-	NUM_DECOMPRESSOR=2		 //number of compressors
+	NUM_DECOMPRESSOR=4		 //number of compressors
 )(
     input clk,
     input rst_n,
@@ -103,7 +103,9 @@ for(j=0;j< NUM_DECOMPRESSOR;j=j+1)begin:gen_decompressor
     end
 	
 	always@(posedge clk)begin
-		if(start)begin
+		if(~rst_n)begin
+			done_decompressor_r[j] <= 1'b1;
+		end else if(job_valid_i & (j[15:0] == job_id_i))begin
 			done_decompressor_r[j] <= 1'b0;
 		end else if(done_decompressor[j])begin
 			done_decompressor_r[j] <= 1'b1;
