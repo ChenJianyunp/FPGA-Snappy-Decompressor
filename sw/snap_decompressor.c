@@ -401,7 +401,7 @@ software side, always allocate a more memory for writing back. */
 	jd[3].wr_size = set_size;
 	jd[3].job_id = 3;
 	
-    rc = do_decompression(dnc, attach_flags, timeout, NUM_DECOMPRESSORS, &jd[0], skip_Detach);
+    rc = do_decompression(dnc, attach_flags, timeout, 1, &jd[0], skip_Detach);
     if (0 == rc) {
         printf("decompression finished - compression factor on this file was %d %% \n", (int)(100. - (100.*size)/set_size));
     }
