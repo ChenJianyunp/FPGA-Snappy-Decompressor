@@ -11,9 +11,9 @@ For Users
 ----
 For users who want to integrate the decompressor in your own system, please use the wrapper file (decompressor_wrapper) as the top-level file of the decompressor. \
 The decompressor can perform as a box that processes on the input stream and output the decompressed stream. The only requirement is to set the comprssion_length and the decompression_length before the data streamed in. \
-All metadata and data communication is under ready/valid handshake protocol. \
+All metadata and data communication is under ready/valid handshake protocol.
 
-The decompressor uses the following interface: \
+The decompressor uses the following interface: 
 
     input clk,    // the clock signal
     input rst_n,  // the reset signal
@@ -40,7 +40,7 @@ A communication protocol should follow a few step. \
 (1) Set metadata (compression_length and decompression_length)\
 (2) Set "start" \
 (3) stream data in for decompression\
-(4) After "done" signal return, a new decompression can be processed and start again from Step (1).\
+(4) After "done" signal return, a new decompression can be processed and start again from Step (1).
 
 
 Working platform
@@ -75,7 +75,9 @@ On default strategy, the timing constrain may fail due to congestion
 
 Publication
 ------
-A work-in-paper is accepted in the coference CODES+ISSS, see: https://ieeexplore.ieee.org/document/8525953
+1. A work-in-paper is accepted in CODES+ISSS 2018, see: https://ieeexplore.ieee.org/document/8525953 \
+2. A regular paper "Refine and Recycle: A Method to Increase Decompression Parallelism" is accepted in ASAP 2019, see: https://ieeexplore.ieee.org/document/8825015/ \
+3. A journal paper extended this work to a multi-engine instance: "An efficient high-throughput LZ77-based decompressor in reconfigurable logic".
 
 Contact
 ----
