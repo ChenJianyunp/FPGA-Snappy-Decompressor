@@ -77,7 +77,7 @@ Publication
 ------
 1. A work-in-paper is accepted in CODES+ISSS 2018, see: https://ieeexplore.ieee.org/document/8525953 \
 2. A regular paper "Refine and Recycle: A Method to Increase Decompression Parallelism" is accepted in ASAP 2019, see: https://ieeexplore.ieee.org/document/8825015/ \
-3. A journal paper extended this work to a multi-engine instance: "An efficient high-throughput LZ77-based decompressor in reconfigurable logic".
+3. A journal paper extended this work to a multi-engine instance: "An efficient high-throughput LZ77-based decompressor in reconfigurable logic", see: https://link.springer.com/article/10.1007/s11265-020-01547-w 
 
 Contact
 ----
