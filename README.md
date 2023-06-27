@@ -81,7 +81,7 @@ Publication
 
 Contact
 ----
-If you have some questions or recommendations for this project, please contact Jianyu Chen(1327079210@qq.com) or Jian Fang(fangjian.alpc@gmail.com)
+If you have some questions or recommendations for this project, please contact Jianyu Chen(1327079210@qq.com) or Jian Fang(fangjian_alpc@163.com or fangjian.alpc@gmail.com)
 
 Update log
 ----
